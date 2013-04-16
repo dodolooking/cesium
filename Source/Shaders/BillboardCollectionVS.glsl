@@ -15,6 +15,7 @@ attribute vec4 color;
 uniform vec2 u_atlasSize;
 
 uniform float u_morphTime;
+uniform bool u_sizeReal;
 
 const vec2 czm_highResolutionSnapScale = vec2(1.0, 1.0);    // TODO
 
@@ -48,6 +49,10 @@ void main()
     ///////////////////////////////////////////////////////////////////////////     
     
     vec4 positionWC = czm_eyeToWindowCoordinates(positionEC);
+    
+    if (u_sizeReal) {
+      scale /= length(p);
+    }
     
     vec2 halfSize = u_atlasSize * imageSize * 0.5 * scale * czm_highResolutionSnapScale;
     halfSize *= ((direction * 2.0) - 1.0);

@@ -190,6 +190,13 @@ define([
          */
         this.morphTime = this._mode.morphTime;
 
+        /**
+         * True if the billboard should maintain certain "real-world" size.
+         *
+         * @type Boolean
+         */
+        this.sizeReal = false;
+
         // The buffer usage for each attribute is determined based on the usage of the attribute over time.
         this._buffersUsage = [
                               BufferUsage.STATIC_DRAW, // SHOW_INDEX
@@ -213,6 +220,9 @@ define([
             },
             u_morphTime : function() {
                 return that.morphTime;
+            },
+            u_sizeReal : function() {
+                return that.sizeReal;
             }
         };
     };
