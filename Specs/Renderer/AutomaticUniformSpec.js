@@ -3,20 +3,24 @@ defineSuite([
          'Specs/createContext',
          'Specs/destroyContext',
          'Specs/createFrameState',
+         'Core/Cartesian2',
          'Core/Cartesian3',
          'Core/Matrix4',
          'Core/PrimitiveType',
          'Core/defaultValue',
-         'Renderer/BufferUsage'
+         'Renderer/BufferUsage',
+         'Renderer/ClearCommand'
      ], 'Renderer/AutomaticUniforms', function(
          createContext,
          destroyContext,
          createFrameState,
+         Cartesian2,
          Cartesian3,
          Matrix4,
          PrimitiveType,
          defaultValue,
-         BufferUsage) {
+         BufferUsage,
+         ClearCommand) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
 
@@ -50,6 +54,9 @@ defineSuite([
                 },
                 computeCullingVolume : function() {
                     return undefined;
+                },
+                getPixelSize : function() {
+                    return new Cartesian2(1.0, 0.1);
                 }
             },
             position : defaultValue(position, Cartesian3.ZERO.clone()),
@@ -71,7 +78,7 @@ defineSuite([
             componentsPerAttribute : 4
         });
 
-        context.clear();
+        ClearCommand.ALL.execute(context);
         expect(context.readPixels()).toEqual([0, 0, 0, 0]);
 
         context.draw({
@@ -678,6 +685,14 @@ defineSuite([
         us.update(createFrameState(createMockCamera()));
 
         var fs = 'void main() { gl_FragColor = vec4((czm_entireFrustum.x == 1.0) && (czm_entireFrustum.y == 1000.0)); }';
+        verifyDraw(fs);
+    });
+
+    it('has czm_pixelSizeInMeters', function() {
+        var us = context.getUniformState();
+        us.update(createFrameState(createMockCamera()));
+
+        var fs = 'void main() { gl_FragColor = vec4(czm_pixelSizeInMeters == 1.0); }';
         verifyDraw(fs);
     });
 

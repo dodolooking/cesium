@@ -5,24 +5,30 @@ defineSuite([
          'Specs/createCamera',
          'Specs/createFrameState',
          'Core/BoundingRectangle',
+         'Core/Color',
          'Core/Math',
          'Core/Matrix4',
          'Core/PrimitiveType',
+         'Core/Cartesian2',
          'Core/Cartesian3',
          'Core/EncodedCartesian3',
-         'Renderer/BufferUsage'
+         'Renderer/BufferUsage',
+         'Renderer/ClearCommand'
      ], 'Renderer/BuiltinFunctions', function(
          createContext,
          destroyContext,
          createCamera,
          createFrameState,
          BoundingRectangle,
+         Color,
          CesiumMath,
          Matrix4,
          PrimitiveType,
+         Cartesian2,
          Cartesian3,
          EncodedCartesian3,
-         BufferUsage) {
+         BufferUsage,
+         ClearCommand) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
 
@@ -47,7 +53,7 @@ defineSuite([
             componentsPerAttribute : 4
         });
 
-        context.clear();
+        ClearCommand.ALL.execute(context);
         expect(context.readPixels()).toEqual([0, 0, 0, 0]);
 
         context.draw({
@@ -172,5 +178,40 @@ defineSuite([
             '}';
 
         verifyDraw(fs, uniformMap);
+    });
+
+    it('has czm_antialias', function() {
+        var fs =
+            'void main() {' +
+            '  vec4 color0 = vec4(1.0, 0.0, 0.0, 1.0);' +
+            '  vec4 color1 = vec4(0.0, 1.0, 0.0, 1.0);' +
+            '  vec4 result = czm_antialias(color0, color1, color1, 0.5);' +
+            ' gl_FragColor = vec4(result == color1);' +
+            '}';
+        verifyDraw(fs);
+    });
+
+    it('czm_pointAlongRay: point at ray origin', function() {
+        var fs =
+            'void main() { ' +
+            '  gl_FragColor = vec4(czm_pointAlongRay(czm_ray(vec3(0.0), vec3(1.0, 0.0, 0.0)), 0.0) == vec3(0.0)); ' +
+            '}';
+        verifyDraw(fs);
+    });
+
+    it('czm_pointAlongRay: point in front of ray origin', function() {
+        var fs =
+            'void main() { ' +
+            '  gl_FragColor = vec4(czm_pointAlongRay(czm_ray(vec3(0.0), vec3(1.0, 0.0, 0.0)), 2.0) == vec3(2.0, 0.0, 0.0)); ' +
+            '}';
+        verifyDraw(fs);
+    });
+
+    it('czm_pointAlongRay: point behind ray origin', function() {
+        var fs =
+            'void main() { ' +
+            '  gl_FragColor = vec4(czm_pointAlongRay(czm_ray(vec3(0.0), vec3(0.0, 1.0, 0.0)), -2.0) == vec3(0.0, -2.0, 0.0)); ' +
+            '}';
+        verifyDraw(fs);
     });
 }, 'WebGL');

@@ -2,6 +2,7 @@
 defineSuite([
         'Scene/Material',
         'Scene/Polygon',
+        'Scene/PolylineCollection',
         'Specs/createContext',
         'Specs/destroyContext',
         'Specs/createCamera',
@@ -14,10 +15,12 @@ defineSuite([
         'Core/Ellipsoid',
         'Core/Matrix4',
         'Core/Math',
-        'Core/JulianDate'
+        'Core/JulianDate',
+        'Renderer/ClearCommand'
     ], function(
         Material,
         Polygon,
+        PolylineCollection,
         createContext,
         destroyContext,
         createCamera,
@@ -30,12 +33,15 @@ defineSuite([
         Ellipsoid,
         Matrix4,
         CesiumMath,
-        JulianDate) {
+        JulianDate,
+        ClearCommand) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
 
     var context;
     var polygon;
+    var polylines;
+    var polyline;
     var us;
 
     beforeAll(function() {
@@ -60,22 +66,42 @@ defineSuite([
             ellipsoid.cartographicToCartesian(Cartographic.fromDegrees(50.0, 50.0, 0.0)),
             ellipsoid.cartographicToCartesian(Cartographic.fromDegrees(-50.0, 50.0, 0.0))
         ]);
+
+        polylines = new PolylineCollection();
+        polyline = polylines.add({
+            positions : [
+                ellipsoid.cartographicToCartesian(Cartographic.fromDegrees(-50.0, 0.0, 0.0)),
+                ellipsoid.cartographicToCartesian(Cartographic.fromDegrees( 50.0, 0.0, 0.0))
+            ],
+            width : 5.0
+        });
     });
 
     afterEach(function() {
         polygon = polygon && polygon.destroy();
+        polylines = polylines && polylines.destroy();
         us = undefined;
     });
 
-    var renderMaterial = function(material) {
+    function renderMaterial(material) {
         polygon.material = material;
 
-        context.clear();
+        ClearCommand.ALL.execute(context);
         expect(context.readPixels()).toEqual([0, 0, 0, 0]);
 
         render(context, frameState, polygon);
         return context.readPixels();
-    };
+    }
+
+    function renderPolylineMaterial(material) {
+        polyline.setMaterial(material);
+
+        ClearCommand.ALL.execute(context);
+        expect(context.readPixels()).toEqual([0, 0, 0, 0]);
+
+        render(context, frameState, polylines);
+        return context.readPixels();
+    }
 
     function verifyMaterial(type) {
         var material = new Material({
@@ -85,7 +111,19 @@ defineSuite([
                 type : type
             }
         });
-        var pixel = renderMaterial(material, context);
+        var pixel = renderMaterial(material);
+        expect(pixel).not.toEqual([0, 0, 0, 0]);
+    }
+
+    function verifyPolylineMaterial(type) {
+        var material = new Material({
+            context : context,
+            strict : true,
+            fabric : {
+                type : type
+            }
+        });
+        var pixel = renderPolylineMaterial(material);
         expect(pixel).not.toEqual([0, 0, 0, 0]);
     }
 
@@ -153,6 +191,10 @@ defineSuite([
         verifyMaterial('Grass');
     });
 
+    it('draws Grid built-in material', function() {
+        verifyMaterial('Grid');
+    });
+
     it('draws Stripe built-in material', function() {
         verifyMaterial('Stripe');
     });
@@ -187,6 +229,22 @@ defineSuite([
 
     it('draws Erosion built-in material', function() {
         verifyMaterial('Erosion');
+    });
+
+    it('draws Fade built-in material', function() {
+        verifyMaterial('Fade');
+    });
+
+    it('draws PolylineArrow built-in material', function() {
+        verifyPolylineMaterial('PolylineArrow');
+    });
+
+    it('draws PolylineGlow built-in material', function() {
+        verifyPolylineMaterial('PolylineGlow');
+    });
+
+    it('draws PolylineOutline built-in material', function() {
+        verifyPolylineMaterial('PolylineOutline');
     });
 
     it('gets the material type', function() {
@@ -305,7 +363,7 @@ defineSuite([
         expect(pixel).not.toEqual([0, 0, 0, 0]);
     });
 
-    it('creates a material with a cube map uniform' , function () {
+    it('creates a material with a cube map uniform', function() {
         var material = new Material({
             context : context,
             strict : true,
@@ -326,6 +384,7 @@ defineSuite([
         var pixel = renderMaterial(material);
         expect(pixel).not.toEqual([0, 0, 0, 0]);
     });
+
     it('creates a material with a boolean uniform', function () {
         var material = new Material({
             context : context,

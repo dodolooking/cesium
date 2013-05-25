@@ -94,10 +94,11 @@ define([
          */
         this.maximumZoomFactor = 2.5;
 
-        this._maxCoord = undefined;
+        this._maxCoord = new Cartesian3();
         this._frustum = undefined;
     };
 
+    var scratchUpdateCartographic = new Cartographic(Math.PI, CesiumMath.PI_OVER_TWO);
     /**
      * @private
      */
@@ -111,7 +112,7 @@ define([
         var projection = scene2D.projection;
         if (typeof projection !== 'undefined' && projection !== this._projection) {
             this._projection = projection;
-            this._maxCoord = projection.project(new Cartographic(Math.PI, CesiumMath.PI_OVER_TWO));
+            this._maxCoord = projection.project(scratchUpdateCartographic, this._maxCoord);
         }
 
         if (updateFrustum) {
@@ -933,7 +934,7 @@ define([
         if (typeof extent === 'undefined') {
             throw new DeveloperError('extent is required.');
         }
-        ellipsoid = (typeof ellipsoid === 'undefined') ? Ellipsoid.WGS84 : ellipsoid;
+        ellipsoid = defaultValue(ellipsoid, Ellipsoid.WGS84);
 
         if (this._mode === SceneMode.SCENE3D) {
             viewExtent3D(this._camera, extent, ellipsoid);
@@ -946,7 +947,7 @@ define([
 
     var pickEllipsoid3DRay = new Ray();
     function pickEllipsoid3D(controller, windowPosition, ellipsoid, result) {
-        ellipsoid = ellipsoid || Ellipsoid.WGS84;
+        ellipsoid = defaultValue(ellipsoid, Ellipsoid.WGS84);
         var ray = controller.getPickRay(windowPosition, pickEllipsoid3DRay);
         var intersection = IntersectionTests.rayEllipsoid(ray, ellipsoid);
         if (!intersection) {
@@ -1009,7 +1010,7 @@ define([
             result = new Cartesian3();
         }
 
-        ellipsoid = ellipsoid || Ellipsoid.WGS84;
+        ellipsoid = defaultValue(ellipsoid, Ellipsoid.WGS84);
 
         if (this._mode === SceneMode.SCENE3D) {
             result = pickEllipsoid3D(this, windowPosition, ellipsoid, result);
@@ -1197,7 +1198,6 @@ define([
 
     function createAnimationCV(controller, duration) {
         var camera = controller._camera;
-        var ellipsoid = controller._projection.getEllipsoid();
         var position = camera.position;
         var direction = camera.direction;
 
@@ -1216,13 +1216,13 @@ define([
         var dWidth = tanTheta * distToC;
         var dHeight = tanPhi * distToC;
 
-        var mapWidth = ellipsoid.getRadii().x * Math.PI;
-        var mapHeight = ellipsoid.getRadii().y * CesiumMath.PI_OVER_TWO;
+        var mapWidth = controller._maxCoord.x;
+        var mapHeight = controller._maxCoord.y;
 
         var maxX = Math.max(dWidth - mapWidth, mapWidth);
         var maxY = Math.max(dHeight - mapHeight, mapHeight);
 
-        if (positionWC.x < -maxX || positionWC.x > maxX || positionWC.y < -maxY || positionWC.y > maxY) {
+        if (positionWC.z < -maxX || positionWC.z > maxX || positionWC.y < -maxY || positionWC.y > maxY) {
             var translateX = centerWC.y < -maxX || centerWC.y > maxX;
             var translateY = centerWC.z < -maxY || centerWC.z > maxY;
             if (translateX || translateY) {

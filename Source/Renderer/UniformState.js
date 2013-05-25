@@ -13,7 +13,7 @@ define([
         '../Core/EncodedCartesian3',
         '../Core/BoundingRectangle',
         '../Core/Transforms',
-        '../Core/computeSunPosition',
+        '../Core/Simon1994PlanetaryPositions',
         '../Scene/SceneMode'
     ], function(
         DeveloperError,
@@ -29,7 +29,7 @@ define([
         EncodedCartesian3,
         BoundingRectangle,
         Transforms,
-        computeSunPosition,
+        Simon1994PlanetaryPositions,
         SceneMode) {
     "use strict";
 
@@ -52,6 +52,8 @@ define([
         this._projection = Matrix4.IDENTITY.clone();
         this._infiniteProjection = Matrix4.IDENTITY.clone();
         this._entireFrustum = new Cartesian2();
+        this._currentFrustum = new Cartesian2();
+        this._pixelSize = 0.0;
 
         this._frameNumber = 1.0;
         this._time = undefined;
@@ -180,18 +182,23 @@ define([
         uniformState._encodedCameraPositionMCDirty = true;
     }
 
-    var sunPositionWC = new Cartesian3();
-    var sunPositionScratch = new Cartesian3();
-
+    var position = new Cartesian3();
+    var transformMatrix = new Matrix3();
     function setSunAndMoonDirections(uniformState, frameState) {
-        computeSunPosition(frameState.time, sunPositionWC);
+        if (typeof Transforms.computeIcrfToFixedMatrix(frameState.time, transformMatrix) === 'undefined') {
+            transformMatrix = Transforms.computeTemeToPseudoFixedMatrix(frameState.time, transformMatrix);
+        }
 
-        Cartesian3.normalize(sunPositionWC, uniformState._sunDirectionWC);
-        Matrix3.multiplyByVector(uniformState.getViewRotation3D(), sunPositionWC, sunPositionScratch);
-        Cartesian3.normalize(sunPositionScratch, uniformState._sunDirectionEC);
+        position = Simon1994PlanetaryPositions.ComputeSunPositionInEarthInertialFrame(frameState.time, position);
+        transformMatrix.multiplyByVector(position, position);
+        Cartesian3.normalize(position, uniformState._sunDirectionWC);
+        Matrix3.multiplyByVector(uniformState.getViewRotation3D(), position, position);
+        Cartesian3.normalize(position, uniformState._sunDirectionEC);
 
-        // Pseudo direction for now just for lighting
-        Cartesian3.negate(uniformState._sunDirectionEC, uniformState._moonDirectionEC);
+        position = Simon1994PlanetaryPositions.ComputeMoonPositionInEarthInertialFrame(frameState.time, position);
+        transformMatrix.multiplyByVector(position, position);
+        Matrix3.multiplyByVector(uniformState.getViewRotation3D(), position, position);
+        Cartesian3.normalize(position, uniformState._moonDirectionEC);
     }
 
     /**
@@ -208,6 +215,8 @@ define([
         if (typeof frustum.getInfiniteProjectionMatrix !== 'undefined') {
             setInfiniteProjection(this, frustum.getInfiniteProjectionMatrix());
         }
+        this._currentFrustum.x = frustum.near;
+        this._currentFrustum.y = frustum.far;
     };
 
     /**
@@ -236,6 +245,9 @@ define([
         }
 
         setSunAndMoonDirections(this, frameState);
+
+        var pixelSize = camera.frustum.getPixelSize(frameState.canvasDimensions);
+        this._pixelSize = Math.max(pixelSize.x, pixelSize.y);
 
         this._entireFrustum.x = camera.frustum.near;
         this._entireFrustum.y = camera.frustum.far;
@@ -873,15 +885,45 @@ define([
 
     /**
      * Returns the near distance (<code>x</code>) and the far distance (<code>y</code>) of the frustum defined by the camera.
+     * This is the largest possible frustum, not an individual frustum used for multi-frustum rendering.
      *
      * @memberof UniformState
      *
      * @return {Cartesian2} Returns the near distance and the far distance of the frustum defined by the camera.
      *
      * @see czm_entireFrustum
+     * @see UniformState#getCurrentFrustum
      */
     UniformState.prototype.getEntireFrustum = function() {
         return this._entireFrustum;
+    };
+
+    /**
+     * Returns the near distance (<code>x</code>) and the far distance (<code>y</code>) of the frustum defined by the camera.
+     * This is the individual frustum used for multi-frustum rendering.
+     *
+     * @memberof UniformState
+     *
+     * @return {Cartesian2} Returns the near distance and the far distance of the frustum defined by the camera.
+     *
+     * @see czm_currentFrustum
+     * @see UniformState#getEntireFrustum
+     */
+    UniformState.prototype.getCurrentFrustum = function() {
+        return this._currentFrustum;
+    };
+
+    /**
+     * Returns the size of a pixel in meters at a distance of one meter from the camera.
+     *
+     * @memberof UniformState
+     *
+     * @return {Number} Returns the size of a pixel in meters at a distance of one meter from the camera.
+     *
+     * @see czm_pixelSizeInMeters
+     */
+    UniformState.prototype.getPixelSize = function() {
+        return this._pixelSize;
     };
 
     /**

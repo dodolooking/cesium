@@ -93,6 +93,12 @@ define([
          */
         this.container = container;
 
+        this._endJulian = undefined;
+        this._epochJulian = undefined;
+        this._lastXPos = undefined;
+        this._scrubElement = undefined;
+        this._startJulian = undefined;
+        this._timeBarSecondsSpan = undefined;
         this._clock = clock;
         this._scrubJulian = clock.currentTime;
         this._mainTicSpan = -1;
@@ -103,6 +109,8 @@ define([
             spanX : 0
         };
         this._mouseX = 0;
+        this._timelineDrag = 0;
+        this._timelineDragLocation = undefined;
         var widget = this;
 
         this.container.className += ' cesium-timeline-main';
@@ -465,14 +473,21 @@ define([
 
     Timeline.prototype.updateFromClock = function() {
         this._scrubJulian = this._clock.currentTime;
+        var scrubElement = this._scrubElement;
+        if (typeof this._scrubElement !== 'undefined') {
+            var seconds = this._startJulian.getSecondsDifference(this._scrubJulian);
+            var xPos = Math.round(seconds * this.container.clientWidth / this._timeBarSecondsSpan);
 
-        var seconds = this._startJulian.getSecondsDifference(this._scrubJulian);
-        var xPos = Math.round(seconds * this.container.clientWidth / this._timeBarSecondsSpan);
+            if (this._lastXPos !== xPos) {
+                this._lastXPos = xPos;
 
-        if (this._scrubElement) {
-            var scrubX = xPos - 8;
-            this._scrubElement.style.left = scrubX.toString() + 'px';
-            this._needleEle.style.left = xPos.toString() + 'px';
+                scrubElement.style.left = (xPos - 8) + 'px';
+                this._needleEle.style.left = xPos + 'px';
+            }
+        }
+        if (typeof this._timelineDragLocation !== 'undefined') {
+            this._setTimeBarTime(this._timelineDragLocation, this._timelineDragLocation * this._timeBarSecondsSpan / this.container.clientWidth);
+            this.zoomTo(this._startJulian.addSeconds(this._timelineDrag), this._endJulian.addSeconds(this._timelineDrag));
         }
     };
 
@@ -517,15 +532,26 @@ define([
         if (this._scrubElement) {
             this._scrubElement.style.backgroundPosition = '0px 0px';
         }
+        this._timelineDrag = 0;
+        this._timelineDragLocation = undefined;
     };
     Timeline.prototype._handleMouseMove = function(e) {
         var dx;
         if (this._mouseMode === timelineMouseMode.scrub) {
             e.preventDefault();
             var x = e.clientX - this.container.getBoundingClientRect().left;
-            if ((x >= 0) && (x <= this.container.clientWidth)) {
+
+            if (x < 0) {
+                this._timelineDragLocation = 0;
+                this._timelineDrag = -0.01*this._timeBarSecondsSpan;
+            } else if (x > this.container.clientWidth) {
+                this._timelineDragLocation = this.container.clientWidth;
+                this._timelineDrag = 0.01*this._timeBarSecondsSpan;
+            } else {
+                this._timelineDragLocation = undefined;
                 this._setTimeBarTime(x, x * this._timeBarSecondsSpan / this.container.clientWidth);
             }
+
         } else if (this._mouseMode === timelineMouseMode.slide) {
             dx = this._mouseX - e.clientX;
             this._mouseX = e.clientX;
