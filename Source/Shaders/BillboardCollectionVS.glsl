@@ -51,7 +51,7 @@ void main()
     vec4 positionWC = czm_eyeToWindowCoordinates(positionEC);
     
     if (u_sizeReal) {
-      scale /= length(p);
+      scale /= length(positionEC.zw);
     }
     
     vec2 halfSize = u_atlasSize * imageSize * 0.5 * scale * czm_highResolutionSnapScale;
