@@ -53,10 +53,10 @@ void main (void)
     czm_ray ray = czm_ray(vec3(0.0), direction);
     
     if (fCameraHeight > fInnerRadius) {
-	    czm_raySegment intersection = czm_rayEllipsoidIntersectionInterval(ray, ellipsoid);
-	    if (!czm_isEmpty(intersection)) {
-	        discard;
-	    }
+	    //czm_raySegment intersection = czm_rayEllipsoidIntersectionInterval(ray, ellipsoid);
+	    //if (!czm_isEmpty(intersection)) {
+	    //    discard;
+	    //}
 	} else {
 	    // The ellipsoid test above will discard fragments when the ray origin is
 	    // inside the ellipsoid.
