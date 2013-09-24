@@ -51,10 +51,10 @@ void main (void)
     vec3 direction = normalize(v_positionEC);
     czm_ray ray = czm_ray(vec3(0.0), direction);
     
-    czm_raySegment intersection = czm_rayEllipsoidIntersectionInterval(ray, ellipsoid);
-    if (!czm_isEmpty(intersection)) {
-        discard;
-    }
+    //czm_raySegment intersection = czm_rayEllipsoidIntersectionInterval(ray, ellipsoid);
+    //if (!czm_isEmpty(intersection)) {
+    //    discard;
+    //}
     
     // Extra normalize added for Android
     float fCos = dot(czm_sunDirectionWC, normalize(v_toCamera)) / length(v_toCamera);
