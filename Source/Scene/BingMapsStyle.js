@@ -1,9 +1,9 @@
 /*global define*/
-define(['../Core/Enumeration'], function(Enumeration) {
+define(function() {
     "use strict";
 
     /**
-     * An enumeration of the types of imagery provided by Bing Maps.
+     * The types of imagery provided by Bing Maps.
      *
      * @exports BingMapsStyle
      *
@@ -13,42 +13,42 @@ define(['../Core/Enumeration'], function(Enumeration) {
         /**
          * Aerial imagery.
          *
+         * @type {String}
          * @constant
-         * @type {Enumeration}
          */
-        AERIAL : new Enumeration(0, 'AERIAL', { imagerySetName : 'Aerial' }),
+        AERIAL : 'Aerial',
 
         /**
          * Aerial imagery with a road overlay.
          *
+         * @type {String}
          * @constant
-         * @type {Enumeration}
          */
-        AERIAL_WITH_LABELS : new Enumeration(1, 'AERIAL_WITH_LABELS', { imagerySetName : 'AerialWithLabels' }),
+        AERIAL_WITH_LABELS : 'AerialWithLabels',
 
         /**
          * Roads without additional imagery.
          *
+         * @type {String}
          * @constant
-         * @type {Enumeration}
          */
-        ROAD : new Enumeration(2, 'ROAD', { imagerySetName : 'Road' }),
+        ROAD : 'Road',
 
         /**
          * Ordnance Survey imagery
          *
+         * @type {String}
          * @constant
-         * @type {Enumeration}
          */
-        ORDNANCE_SURVEY : new Enumeration(3, 'ORDNANCE_SURVEY', { imagerySetName : 'OrdnanceSurvey' }),
+        ORDNANCE_SURVEY : 'OrdnanceSurvey',
 
         /**
          * Collins Bart imagery.
          *
+         * @type {String}
          * @constant
-         * @type {Enumeration}
          */
-        COLLINS_BART : new Enumeration(4, 'COLLINS_BART', { imagerySetName : 'CollinsBart' })
+        COLLINS_BART : 'CollinsBart'
     };
 
     return BingMapsStyle;

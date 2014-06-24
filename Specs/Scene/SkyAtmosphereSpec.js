@@ -1,24 +1,24 @@
 /*global defineSuite*/
 defineSuite([
-         'Scene/SkyAtmosphere',
-         'Specs/createContext',
-         'Specs/destroyContext',
-         'Specs/createCamera',
-         'Specs/createFrameState',
-         'Core/Cartesian3',
-         'Core/Ellipsoid',
-         'Renderer/ClearCommand',
-         'Scene/SceneMode'
-     ], function(
-         SkyAtmosphere,
-         createContext,
-         destroyContext,
-         createCamera,
-         createFrameState,
-         Cartesian3,
-         Ellipsoid,
-         ClearCommand,
-         SceneMode) {
+        'Scene/SkyAtmosphere',
+        'Core/Cartesian3',
+        'Core/Ellipsoid',
+        'Renderer/ClearCommand',
+        'Scene/SceneMode',
+        'Specs/createCamera',
+        'Specs/createContext',
+        'Specs/createFrameState',
+        'Specs/destroyContext'
+    ], function(
+        SkyAtmosphere,
+        Cartesian3,
+        Ellipsoid,
+        ClearCommand,
+        SceneMode,
+        createCamera,
+        createContext,
+        createFrameState,
+        destroyContext) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
 
@@ -38,11 +38,16 @@ defineSuite([
         ClearCommand.ALL.execute(context);
         expect(context.readPixels()).toEqual([0, 0, 0, 0]);
 
-        var us = context.getUniformState();
-        var radii = Ellipsoid.WGS84.getRadii();
-        var frameState = createFrameState(createCamera(
-            context, new Cartesian3(radii.x * 0.1, 0.0, radii.z * 1.005), new Cartesian3(0.0, 0.0, radii.z * 1.005), Cartesian3.UNIT_Z, 1.0, 20000000.0));
-        us.update(frameState);
+        var us = context.uniformState;
+        var radii = Ellipsoid.WGS84.radii;
+        var frameState = createFrameState(createCamera({
+            eye : new Cartesian3(radii.x * 0.1, 0.0, radii.z * 1.005),
+            target : new Cartesian3(0.0, 0.0, radii.z * 1.005),
+            up : Cartesian3.UNIT_Z,
+            near : 1.0,
+            far : 20000000.0
+        }));
+        us.update(context, frameState);
 
         var command = s.update(context, frameState);
         expect(command).toBeDefined();
@@ -57,11 +62,16 @@ defineSuite([
         ClearCommand.ALL.execute(context);
         expect(context.readPixels()).toEqual([0, 0, 0, 0]);
 
-        var us = context.getUniformState();
-        var radii = Ellipsoid.WGS84.getRadii();
-        var frameState = createFrameState(createCamera(
-            context, new Cartesian3(radii.x * 0.5, 0.0, radii.z * 1.005), new Cartesian3(0.0, 0.0, radii.z * 1.005), Cartesian3.UNIT_Z, 1.0, 20000000.0));
-        us.update(frameState);
+        var us = context.uniformState;
+        var radii = Ellipsoid.WGS84.radii;
+        var frameState = createFrameState(createCamera({
+            eye : new Cartesian3(radii.x * 0.1, 0.0, radii.z * 1.005),
+            target : new Cartesian3(0.0, 0.0, radii.z * 1.005),
+            up : Cartesian3.UNIT_Z,
+            near : 1.0,
+            far : 20000000.0
+        }));
+        us.update(context, frameState);
 
         var command = s.update(context, frameState);
         expect(command).toBeDefined();
@@ -74,11 +84,16 @@ defineSuite([
         var s = new SkyAtmosphere();
         s.show = false;
 
-        var us = context.getUniformState();
-        var radii = Ellipsoid.WGS84.getRadii();
-        var frameState = createFrameState(createCamera(
-            context, new Cartesian3(radii.x * 0.1, 0.0, radii.z * 1.005), new Cartesian3(0.0, 0.0, radii.z * 1.005), Cartesian3.UNIT_Z, 1.0, 20000000.0));
-        us.update(frameState);
+        var us = context.uniformState;
+        var radii = Ellipsoid.WGS84.radii;
+        var frameState = createFrameState(createCamera({
+            eye : new Cartesian3(radii.x * 0.1, 0.0, radii.z * 1.005),
+            target : new Cartesian3(0.0, 0.0, radii.z * 1.005),
+            up : Cartesian3.UNIT_Z,
+            near : 1.0,
+            far : 20000000.0
+        }));
+        us.update(context, frameState);
 
         var command = s.update(context, frameState);
         expect(command).not.toBeDefined();
@@ -87,12 +102,17 @@ defineSuite([
     it('does not render in 2D', function() {
         var s = new SkyAtmosphere();
 
-        var us = context.getUniformState();
-        var radii = Ellipsoid.WGS84.getRadii();
-        var frameState = createFrameState(createCamera(
-            context, new Cartesian3(radii.x * 0.1, 0.0, radii.z * 1.005), new Cartesian3(0.0, 0.0, radii.z * 1.005), Cartesian3.UNIT_Z, 1.0, 20000000.0));
+        var us = context.uniformState;
+        var radii = Ellipsoid.WGS84.radii;
+        var frameState = createFrameState(createCamera({
+            eye : new Cartesian3(radii.x * 0.1, 0.0, radii.z * 1.005),
+            target : new Cartesian3(0.0, 0.0, radii.z * 1.005),
+            up : Cartesian3.UNIT_Z,
+            near : 1.0,
+            far : 20000000.0
+        }));
         frameState.mode = SceneMode.SCENE2D;
-        us.update(frameState);
+        us.update(context, frameState);
 
         var command = s.update(context, frameState);
         expect(command).not.toBeDefined();
@@ -101,12 +121,17 @@ defineSuite([
     it('does not render without a color pass', function() {
         var s = new SkyAtmosphere();
 
-        var us = context.getUniformState();
-        var radii = Ellipsoid.WGS84.getRadii();
-        var frameState = createFrameState(createCamera(
-            context, new Cartesian3(radii.x * 0.1, 0.0, radii.z * 1.005), new Cartesian3(0.0, 0.0, radii.z * 1.005), Cartesian3.UNIT_Z, 1.0, 20000000.0));
-        frameState.passes.color = false;
-        us.update(frameState);
+        var us = context.uniformState;
+        var radii = Ellipsoid.WGS84.radii;
+        var frameState = createFrameState(createCamera({
+            eye : new Cartesian3(radii.x * 0.1, 0.0, radii.z * 1.005),
+            target : new Cartesian3(0.0, 0.0, radii.z * 1.005),
+            up : Cartesian3.UNIT_Z,
+            near : 1.0,
+            far : 20000000.0
+        }));
+        frameState.passes.render = false;
+        us.update(context, frameState);
 
         var command = s.update(context, frameState);
         expect(command).not.toBeDefined();
@@ -114,7 +139,7 @@ defineSuite([
 
     it('gets ellipsoid', function() {
         var s = new SkyAtmosphere(Ellipsoid.UNIT_SPHERE);
-        expect(s.getEllipsoid()).toEqual(Ellipsoid.UNIT_SPHERE);
+        expect(s.ellipsoid).toEqual(Ellipsoid.UNIT_SPHERE);
     });
 
     it('isDestroyed', function() {

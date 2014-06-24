@@ -1,46 +1,38 @@
 /*global define*/
 define([
-        'Core/Ellipsoid',
-        'Core/GeographicProjection',
         'Core/defaultValue',
+        'Core/GeographicProjection',
         'Core/JulianDate',
         'Scene/Camera',
-        'Scene/SceneMode',
+        'Scene/CreditDisplay',
         'Scene/FrameState'
     ], function(
-        Ellipsoid,
-        GeographicProjection,
         defaultValue,
+        GeographicProjection,
         JulianDate,
         Camera,
-        SceneMode,
+        CreditDisplay,
         FrameState) {
     "use strict";
 
     var createFrameState = function(camera, frameNumber, time) {
         // Mock frame-state for testing.
-        var frameState = new FrameState();
+        var frameState = new FrameState(new CreditDisplay(document.createElement('div')));
 
-        frameState.mode = SceneMode.SCENE3D;
-        frameState.morphTime = 1.0;
-        frameState.scene2D = {
-            projection : new GeographicProjection(Ellipsoid.WGS84)
-        };
-
+        var projection = new GeographicProjection();
+        frameState.mapProjection = projection;
         frameState.frameNumber = defaultValue(frameNumber, 1.0);
         frameState.time = defaultValue(time, JulianDate.fromDate(new Date('January 1, 2011 12:00:00 EST')));
 
         camera = defaultValue(camera, new Camera({
-            clientHeight : 1,
-            clientWidth : 1
+            drawingBufferWidth : 1,
+            drawingBufferHeight : 1,
+            mapProjection : projection
         }));
         frameState.camera = camera;
         frameState.cullingVolume = camera.frustum.computeCullingVolume(camera.position, camera.direction, camera.up);
-        frameState.canvasDimensions.x = 1.0;
-        frameState.canvasDimensions.y = 1.0;
 
-        frameState.passes.color = true;
-        frameState.passes.overlay = true;
+        frameState.passes.render = true;
         frameState.passes.pick = false;
 
         return frameState;

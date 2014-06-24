@@ -1,18 +1,18 @@
 /*global defineSuite*/
 defineSuite([
-         'Core/IntersectionTests',
-         'Core/Cartesian3',
-         'Core/Ellipsoid',
-         'Core/Math',
-         'Core/Plane',
-         'Core/Ray'
-     ], function(
-         IntersectionTests,
-         Cartesian3,
-         Ellipsoid,
-         CesiumMath,
-         Plane,
-         Ray) {
+        'Core/IntersectionTests',
+        'Core/Cartesian3',
+        'Core/Ellipsoid',
+        'Core/Math',
+        'Core/Plane',
+        'Core/Ray'
+    ], function(
+        IntersectionTests,
+        Cartesian3,
+        Ellipsoid,
+        CesiumMath,
+        Plane,
+        Ray) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
 
@@ -46,25 +46,25 @@ defineSuite([
     it('rayPlane throws without ray', function() {
         expect(function() {
             IntersectionTests.rayPlane();
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('rayPlane throws without plane', function() {
         expect(function() {
             IntersectionTests.rayPlane(new Ray(new Cartesian3(), new Cartesian3()));
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('rayEllipsoid throws without ray', function() {
         expect(function() {
             IntersectionTests.rayEllipsoid();
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('rayEllipsoid throws without ellipsoid', function() {
         expect(function() {
             IntersectionTests.rayEllipsoid(new Ray(new Cartesian3(), new Cartesian3()));
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('rayEllipsoid outside intersections', function() {
@@ -110,27 +110,27 @@ defineSuite([
 
         ray = new Ray(new Cartesian3(-2.0, 0.0, 0.0), new Cartesian3(-1.0, 0.0, 0.0));
         intersections = IntersectionTests.rayEllipsoid(ray, unitSphere);
-        expect(typeof intersections === 'undefined').toEqual(true);
+        expect(intersections).toBeUndefined();
 
         ray = new Ray(new Cartesian3(0.0, -2.0, 0.0), new Cartesian3(0.0, -1.0, 0.0));
         intersections = IntersectionTests.rayEllipsoid(ray, unitSphere);
-        expect(typeof intersections === 'undefined').toEqual(true);
+        expect(intersections).toBeUndefined();
 
         ray = new Ray(new Cartesian3(0.0, 0.0, -2.0), new Cartesian3(0.0, 0.0, -1.0));
         intersections = IntersectionTests.rayEllipsoid(ray, unitSphere);
-        expect(typeof intersections === 'undefined').toEqual(true);
+        expect(intersections).toBeUndefined();
     });
 
     it('rayEllipsoid ray inside pointing in intersection', function() {
         var ellipsoid = Ellipsoid.WGS84;
 
         var origin = new Cartesian3(20000.0, 0.0, 0.0);
-        var direction = origin.normalize().negate();
+        var direction = Cartesian3.negate(Cartesian3.normalize(origin, new Cartesian3()), new Cartesian3());
         var ray = new Ray(origin, direction);
 
         var expected = {
                 start : 0.0,
-                stop : ellipsoid.getRadii().x + origin.x
+                stop : ellipsoid.radii.x + origin.x
         };
         var actual = IntersectionTests.rayEllipsoid(ray, ellipsoid);
 
@@ -143,12 +143,12 @@ defineSuite([
         var ellipsoid = Ellipsoid.WGS84;
 
         var origin = new Cartesian3(20000.0, 0.0, 0.0);
-        var direction = origin.normalize();
+        var direction = Cartesian3.normalize(origin, new Cartesian3());
         var ray = new Ray(origin, direction);
 
         var expected = {
                 start : 0.0,
-                stop : ellipsoid.getRadii().x - origin.x
+                stop : ellipsoid.radii.x - origin.x
         };
         var actual = IntersectionTests.rayEllipsoid(ray, ellipsoid);
 
@@ -188,13 +188,13 @@ defineSuite([
     it('grazingAltitudeLocation throws without ray', function() {
         expect(function() {
             IntersectionTests.grazingAltitudeLocation();
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('grazingAltitudeLocation throws without ellipsoid', function() {
         expect(function() {
             IntersectionTests.grazingAltitudeLocation(new Ray());
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('grazingAltitudeLocation is origin of ray', function() {
@@ -210,7 +210,7 @@ defineSuite([
         var actual = IntersectionTests.grazingAltitudeLocation(ray, ellipsoid);
         expect(actual).toEqualEpsilon(expected, CesiumMath.EPSILON15);
 
-        ray = new Ray(new Cartesian3(0.0, 2.0, 2.0), Cartesian3.UNIT_Y.negate());
+        ray = new Ray(new Cartesian3(0.0, 2.0, 2.0), Cartesian3.negate(Cartesian3.UNIT_Y, new Cartesian3()));
         expected = new Cartesian3(0.0, 0.0, 2.0);
         actual = IntersectionTests.grazingAltitudeLocation(ray, ellipsoid);
         expect(actual).toEqualEpsilon(expected, CesiumMath.EPSILON15);
@@ -223,7 +223,7 @@ defineSuite([
         var ray = new Ray(origin, direction);
         var expected = new Cartesian3(628106.8386515155, -6327836.936616249, 493230.07552381355);
         var actual = IntersectionTests.grazingAltitudeLocation(ray, ellipsoid);
-        expect(actual).toEqual(expected);
+        expect(actual).toEqualEpsilon(expected, CesiumMath.EPSILON8);
     });
 
     it('grazingAltitudeLocation outside ellipsoid 3', function() {
@@ -233,7 +233,7 @@ defineSuite([
         var ray = new Ray(origin, direction);
         var expected = new Cartesian3(-125.9063174739769, -5701095.640722358, 2850156.57342018);
         var actual = IntersectionTests.grazingAltitudeLocation(ray, ellipsoid);
-        expect(actual).toEqual(expected);
+        expect(actual).toEqualEpsilon(expected, CesiumMath.EPSILON10);
     });
 
     it('grazingAltitudeLocation inside ellipsoid', function() {
@@ -250,7 +250,7 @@ defineSuite([
     });
 
     it('lineSegmentPlane intersects', function() {
-        var normal = Cartesian3.UNIT_Y.clone();
+        var normal = Cartesian3.clone(Cartesian3.UNIT_Y);
         var point = new Cartesian3(0.0, 2.0, 0.0);
         var plane = Plane.fromPointNormal(point, normal);
 
@@ -298,18 +298,143 @@ defineSuite([
     it('lineSegmentPlane throws without endPoint0', function() {
         expect(function() {
             IntersectionTests.lineSegmentPlane();
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('lineSegmentPlane throws without endPoint1', function() {
         expect(function() {
             IntersectionTests.lineSegmentPlane(new Cartesian3());
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('lineSegmentPlane throws without plane', function() {
         expect(function() {
             IntersectionTests.lineSegmentPlane(new Cartesian3(), new Cartesian3());
-        }).toThrow();
+        }).toThrowDeveloperError();
+    });
+
+    it('triangle is front of a plane', function() {
+        var plane = new Plane(Cartesian3.UNIT_Z, 0.0);
+        var p0 = new Cartesian3(0.0, 0.0, 2.0);
+        var p1 = new Cartesian3(0.0, 1.0, 2.0);
+        var p2 = new Cartesian3(1.0, 0.0, 2.0);
+
+        var triangles = IntersectionTests.trianglePlaneIntersection(p0, p1, p2, plane);
+        expect(triangles).not.toBeDefined();
+     });
+
+    it('triangle is behind a plane', function() {
+        var plane = new Plane(Cartesian3.negate(Cartesian3.UNIT_Z, new Cartesian3()), 0.0);
+        var p0 = new Cartesian3(0.0, 0.0, 2.0);
+        var p1 = new Cartesian3(0.0, 1.0, 2.0);
+        var p2 = new Cartesian3(1.0, 0.0, 2.0);
+
+        var triangles = IntersectionTests.trianglePlaneIntersection(p0, p1, p2, plane);
+        expect(triangles).not.toBeDefined();
+     });
+
+    it('triangle intersects plane with p0 behind', function() {
+        var plane = new Plane(Cartesian3.UNIT_Z, -1.0);
+        var p0 = new Cartesian3(0.0, 0.0, 0.0);
+        var p1 = new Cartesian3(0.0, 1.0, 2.0);
+        var p2 = new Cartesian3(0.0, -1.0, 2.0);
+
+        var triangles = IntersectionTests.trianglePlaneIntersection(p0, p1, p2, plane);
+        expect(triangles).toBeDefined();
+        expect(triangles.indices.length).toEqual(3 + 6);
+        expect(Cartesian3.equals(triangles.positions[triangles.indices[0]], p0)).toEqual(true);
+    });
+
+    it('triangle intersects plane with p1 behind', function() {
+        var plane = new Plane(Cartesian3.UNIT_Z, -1.0);
+        var p0 = new Cartesian3(0.0, -1.0, 2.0);
+        var p1 = new Cartesian3(0.0, 0.0, 0.0);
+        var p2 = new Cartesian3(0.0, 1.0, 2.0);
+
+        var triangles = IntersectionTests.trianglePlaneIntersection(p0, p1, p2, plane);
+        expect(triangles).toBeDefined();
+        expect(triangles.indices.length).toEqual(3 + 6);
+        expect(Cartesian3.equals(triangles.positions[triangles.indices[0]], p1)).toEqual(true);
+    });
+
+    it('triangle intersects plane with p2 behind', function() {
+        var plane = new Plane(Cartesian3.UNIT_Z, -1.0);
+        var p0 = new Cartesian3(0.0, 1.0, 2.0);
+        var p1 = new Cartesian3(0.0, -1.0, 2.0);
+        var p2 = new Cartesian3(0.0, 0.0, 0.0);
+
+        var triangles = IntersectionTests.trianglePlaneIntersection(p0, p1, p2, plane);
+        expect(triangles).toBeDefined();
+        expect(triangles.indices.length).toEqual(3 + 6);
+        expect(Cartesian3.equals(triangles.positions[triangles.indices[0]], p2)).toEqual(true);
+    });
+
+    it('triangle intersects plane with p0 in front', function() {
+        var plane = new Plane(Cartesian3.UNIT_Y, -1.0);
+        var p0 = new Cartesian3(0.0, 2.0, 0.0);
+        var p1 = new Cartesian3(1.0, 0.0, 0.0);
+        var p2 = new Cartesian3(-1.0, 0.0, 0.0);
+
+        var triangles = IntersectionTests.trianglePlaneIntersection(p0, p1, p2, plane);
+        expect(triangles).toBeDefined();
+        expect(triangles.indices.length).toEqual(6 + 3);
+        expect(Cartesian3.equals(triangles.positions[triangles.indices[0]], p1)).toEqual(true);  // p0 is in front
+        expect(Cartesian3.equals(triangles.positions[triangles.indices[1]], p2)).toEqual(true);
+    });
+
+    it('triangle intersects plane with p1 in front', function() {
+        var plane = new Plane(Cartesian3.UNIT_Y, -1.0);
+        var p0 = new Cartesian3(-1.0, 0.0, 0.0);
+        var p1 = new Cartesian3(0.0, 2.0, 0.0);
+        var p2 = new Cartesian3(1.0, 0.0, 0.0);
+
+        var triangles = IntersectionTests.trianglePlaneIntersection(p0, p1, p2, plane);
+        expect(triangles).toBeDefined();
+        expect(triangles.indices.length).toEqual(6 + 3);
+        expect(Cartesian3.equals(triangles.positions[triangles.indices[0]], p2)).toEqual(true);  // p1 is in front
+        expect(Cartesian3.equals(triangles.positions[triangles.indices[1]], p0)).toEqual(true);
+    });
+
+    it('triangle intersects plane with p2 in front', function() {
+        var plane = new Plane(Cartesian3.UNIT_Y, -1.0);
+        var p0 = new Cartesian3(1.0, 0.0, 0.0);
+        var p1 = new Cartesian3(-1.0, 0.0, 0.0);
+        var p2 = new Cartesian3(0.0, 2.0, 0.0);
+
+        var triangles = IntersectionTests.trianglePlaneIntersection(p0, p1, p2, plane);
+        expect(triangles).toBeDefined();
+        expect(triangles.indices.length).toEqual(6 + 3);
+        expect(Cartesian3.equals(triangles.positions[triangles.indices[0]], p0), true);  // p2 is in front
+        expect(Cartesian3.equals(triangles.positions[triangles.indices[1]], p1)).toEqual(true);
+    });
+
+    it('trianglePlaneIntersection throws without p0', function() {
+        expect(function() {
+            return IntersectionTests.trianglePlaneIntersection();
+        }).toThrowDeveloperError();
+    });
+
+    it('trianglePlaneIntersection throws without p1', function() {
+        var p = Cartesian3.UNIT_X;
+
+        expect(function() {
+            return IntersectionTests.trianglePlaneIntersection(p);
+        }).toThrowDeveloperError();
+    });
+
+    it('trianglePlaneIntersection throws without p2', function() {
+        var p = Cartesian3.UNIT_X;
+
+        expect(function() {
+            return IntersectionTests.trianglePlaneIntersection(p, p);
+        }).toThrowDeveloperError();
+    });
+
+    it('trianglePlaneIntersection throws without plane', function() {
+        var p = Cartesian3.UNIT_X;
+
+        expect(function() {
+            return IntersectionTests.trianglePlaneIntersection(p, p, p);
+        }).toThrowDeveloperError();
     });
 });

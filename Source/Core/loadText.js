@@ -1,12 +1,8 @@
 /*global define*/
 define([
-        './DeveloperError',
-        './RequestErrorEvent',
-        '../ThirdParty/when'
+        './loadWithXhr'
     ], function(
-        DeveloperError,
-        RequestErrorEvent,
-        when) {
+        loadWithXhr) {
     "use strict";
 
     /**
@@ -21,56 +17,24 @@ define([
      * @param {Object} [headers] HTTP headers to send with the request.
      * @returns {Promise} a promise that will resolve to the requested data when loaded.
      *
-     * @exception {DeveloperError} url is required.
+     * @see {@link https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest|XMLHttpRequest}
+     * @see {@link http://www.w3.org/TR/cors/|Cross-Origin Resource Sharing}
+     * @see {@link http://wiki.commonjs.org/wiki/Promises/A|CommonJS Promises/A}
      *
      * @example
      * // load text from a URL, setting a custom header
-     * loadText('http://someUrl.com/someJson.txt', {
+     * Cesium.loadText('http://someUrl.com/someJson.txt', {
      *   'X-Custom-Header' : 'some value'
      * }).then(function(text) {
-     *     //Do something with the text
-     * }, function() {
+     *     // Do something with the text
+     * }, function(error) {
      *     // an error occurred
      * });
-     *
-     * @see <a href="http://en.wikipedia.org/wiki/XMLHttpRequest">XMLHttpRequest</a>
-     * @see <a href='http://www.w3.org/TR/cors/'>Cross-Origin Resource Sharing</a>
-     * @see <a href='http://wiki.commonjs.org/wiki/Promises/A'>CommonJS Promises/A</a>
      */
     var loadText = function(url, headers) {
-        if (typeof url === 'undefined') {
-            throw new DeveloperError('url is required.');
-        }
-
-        return when(url, function(url) {
-            var xhr = new XMLHttpRequest();
-            xhr.open("GET", url, true);
-
-            if (typeof headers !== 'undefined') {
-                for ( var key in headers) {
-                    if (headers.hasOwnProperty(key)) {
-                        xhr.setRequestHeader(key, headers[key]);
-                    }
-                }
-            }
-
-            var deferred = when.defer();
-
-            xhr.onload = function(e) {
-                if (xhr.status === 200) {
-                    deferred.resolve(xhr.response);
-                } else {
-                    deferred.reject(new RequestErrorEvent(xhr.status, xhr.response));
-                }
-            };
-
-            xhr.onerror = function(e) {
-                deferred.reject(new RequestErrorEvent());
-            };
-
-            xhr.send();
-
-            return deferred.promise;
+        return loadWithXhr({
+            url : url,
+            headers : headers
         });
     };
 

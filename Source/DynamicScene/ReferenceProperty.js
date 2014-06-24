@@ -1,156 +1,341 @@
 /*global define*/
 define([
-        '../Core/defaultValue',
-        '../Core/DeveloperError'
-       ], function(
-         defaultValue,
-         DeveloperError) {
+        '../Core/defined',
+        '../Core/defineProperties',
+        '../Core/DeveloperError',
+        '../Core/RuntimeError',
+        '../Core/Event',
+        './Property'
+    ], function(
+        defined,
+        defineProperties,
+        DeveloperError,
+        RuntimeError,
+        Event,
+        Property) {
     "use strict";
 
-    function resolve(referenceProperty) {
-        var targetProperty = referenceProperty._targetProperty;
-        if (typeof targetProperty === 'undefined') {
-            var resolveBuffer = defaultValue(referenceProperty._dynamicObjectCollection.compositeCollection, referenceProperty._dynamicObjectCollection);
-            var targetObject = resolveBuffer.getObject(referenceProperty._targetObjectId);
-            if (typeof targetObject !== 'undefined') {
-                targetProperty = targetObject[referenceProperty._targetPropertyName];
-                referenceProperty._targetProperty = targetProperty;
-                referenceProperty._targetObject = targetObject;
+    function resolve(that) {
+        var targetProperty = that._targetProperty;
+        if (!defined(targetProperty)) {
+            var targetObject = that._targetObject;
+
+            if (!defined(targetObject)) {
+                var targetCollection = that._targetCollection;
+
+                targetObject = targetCollection.getById(that._targetId);
+                if (!defined(targetObject)) {
+                    throw new RuntimeError('target object could not be resolved.');
+                }
+                targetObject.definitionChanged.addEventListener(ReferenceProperty.prototype._onTargetObjectDefinitionChanged, that);
+                that._targetObject = targetObject;
             }
+
+            var names = that._targetPropertyNames;
+
+            targetProperty = targetObject;
+            var length = names.length;
+            for (var i = 0; i < length; i++) {
+                targetProperty = targetProperty[names[i]];
+                if (!defined(targetProperty)) {
+                    throw new RuntimeError('targetProperty could not be resolved.');
+                }
+            }
+
+            that._targetProperty = targetProperty;
         }
         return targetProperty;
     }
 
     /**
-     * A dynamic property which transparently links to another property, which may
-     * or may not exist yet.  It is up to the caller to know which kind of property
-     * is being linked to.
+     * A {@link Property} which transparently links to another property on a provided object.
      *
      * @alias ReferenceProperty
      * @constructor
      *
-     * @param {DynamicObjectCollection} dynamicObjectCollection The object collection which will be used to resolve the reference.
-     * @param {String} targetObjectId The id of the object which is being referenced.
-     * @param {String} targetPropertyName The name of the property on the target object which we will use.
+     * @param {targetCollection} targetCollection The object collection which will be used to resolve the reference.
+     * @param {String} targetId The id of the object which is being referenced.
+     * @param {String} targetPropertyNames The name of the property on the target object which we will use.
      *
-     * @exception {DeveloperError} dynamicObjectCollection is required.
-     * @exception {DeveloperError} targetObjectId is required.
-     * @exception {DeveloperError} targetPropertyName is required.
+     * @example
+     * var collection = new Cesium.DynamicObjectCollection();
      *
-     * @see ReferenceProperty#fromString
-     * @see DynamicProperty
-     * @see DynamicPositionProperty
-     * @see DynamicDirectionsProperty
-     * @see DynamicVertexPositionsProperty
-     * @see DynamicObjectCollection
-     * @see CompositeDynamicObjectCollection
+     * //Create a new object and assign a billboard scale.
+     * var object1 = new Cesium.DynamicObject('object1');
+     * object1.billboard = new Cesium.DynamicBillboard();
+     * object1.billboard.scale = new ConstantProperty(2.0);
+     * collection.add(object1);
+     *
+     * //Create a second object and reference the scale from the first one.
+     * var object2 = new Cesium.DynamicObject('object2');
+     * object2.model = new Cesium.DynamicModel();
+     * object2.model.scale = new Cesium.ReferenceProperty(collection, 'object1', ['billboard', 'scale']);
+     * collection.add(object2);
+     *
+     * //Create a third object, but use the fromString helper function.
+     * var object3 = new Cesium.DynamicObject('object3');
+     * object3.billboard = new Cesium.DynamicBillboard();
+     * object3.billboard.scale = Cesium.ReferenceProperty.fromString(collection, 'object1#billboard.scale']);
+     * collection.add(object3);
+     *
+     * //You can refer to an object with a # or . in id and property names by escaping them.
+     * var object4 = new Cesium.DynamicObject('#object.4');
+     * object4.billboard = new Cesium.DynamicBillboard();
+     * object4.billboard.scale = new ConstantProperty(2.0);
+     * collection.add(object4);
+     *
+     * var object5 = new Cesium.DynamicObject('object5');
+     * object5.billboard = new Cesium.DynamicBillboard();
+     * object5.billboard.scale = Cesium.ReferenceProperty.fromString(collection, '\\#object\\.4#billboard.scale');
+     * collection.add(object5);
      */
-    var ReferenceProperty = function(dynamicObjectCollection, targetObjectId, targetPropertyName) {
-        if (typeof dynamicObjectCollection === 'undefined') {
-            throw new DeveloperError('dynamicObjectCollection is required.');
+    var ReferenceProperty = function(targetCollection, targetId, targetPropertyNames) {
+        //>>includeStart('debug', pragmas.debug);
+        if (!defined(targetCollection)) {
+            throw new DeveloperError('targetCollection is required.');
         }
-        if (typeof targetObjectId === 'undefined') {
-            throw new DeveloperError('targetObjectId is required.');
+        if (!defined(targetId) || targetId === '') {
+            throw new DeveloperError('targetId is required.');
         }
-        if (typeof targetPropertyName === 'undefined') {
-            throw new DeveloperError('targetPropertyName is required.');
+        if (!defined(targetPropertyNames) || targetPropertyNames.length === 0) {
+            throw new DeveloperError('targetPropertyNames is required.');
         }
+        for (var i = 0; i < targetPropertyNames.length; i++) {
+            var item = targetPropertyNames[i];
+            if (!defined(item) || item === '') {
+                throw new DeveloperError('reference contains invalid properties.');
+            }
+        }
+        //>>includeEnd('debug');
 
+        this._targetCollection = targetCollection;
+        this._targetId = targetId;
+        this._targetPropertyNames = targetPropertyNames;
         this._targetProperty = undefined;
-        this._dynamicObjectCollection = dynamicObjectCollection;
-        this._targetObjectId = targetObjectId;
         this._targetObject = undefined;
-        this._targetPropertyName = targetPropertyName;
+        this._definitionChanged = new Event();
+
+        targetCollection.collectionChanged.addEventListener(ReferenceProperty.prototype._onCollectionChanged, this);
     };
 
-    /**
-     * Creates a new reference property given the dynamic object collection that will
-     * be used to resolve it and a string indicating the target object id and property,
-     * delineated by a period.
-     *
-     * @param {DynamicObject} dynamicObjectCollection
-     * @param referenceString
-     *
-     * @exception {DeveloperError} dynamicObjectCollection is required.
-     * @exception {DeveloperError} referenceString is required.
-     * @exception {DeveloperError} referenceString must contain a single . delineating the target object ID and property name.
-     *
-     * @see ReferenceProperty#fromString
-     * @see DynamicProperty
-     * @see DynamicPositionProperty
-     * @see DynamicDirectionsProperty
-     * @see DynamicVertexPositionsProperty
-     * @see DynamicObjectCollection
-     * @see CompositeDynamicObjectCollection
-     *
-     * @returns A new instance of ReferenceProperty.
-     */
-    ReferenceProperty.fromString = function(dynamicObjectCollection, referenceString) {
-        if (typeof dynamicObjectCollection === 'undefined') {
-            throw new DeveloperError('dynamicObjectCollection is required.');
+    defineProperties(ReferenceProperty.prototype, {
+        /**
+         * Gets a value indicating if this property is constant.
+         * @memberof ReferenceProperty.prototype
+         * @type {Boolean}
+         * @readonly
+         */
+        isConstant : {
+            get : function() {
+                return Property.isConstant(resolve(this));
+            }
+        },
+        /**
+         * Gets the event that is raised whenever the definition of this property changes.
+         * The definition is changed whenever the referenced property's definition is changed.
+         * @memberof ReferenceProperty.prototype
+         * @type {Event}
+         * @readonly
+         */
+        definitionChanged : {
+            get : function() {
+                return this._definitionChanged;
+            }
+        },
+        /**
+         * Gets the reference frame that the position is defined in.
+         * This property is only valid if the referenced property is a {@link PositionProperty}.
+         * @memberof ReferenceProperty.prototype
+         * @type {ReferenceFrame}
+         * @readonly
+         */
+        referenceFrame : {
+            get : function() {
+                return resolve(this).referenceFrame;
+            }
+        },
+        /**
+         * Gets the id of the object being referenced.
+         * @memberof ReferenceProperty.prototype
+         * @type {String}
+         * @readonly
+         */
+        targetId : {
+            get : function() {
+                return this._targetId;
+            }
+        },
+        /**
+         * Gets the collection containing the object being referenced.
+         * @memberof ReferenceProperty.prototype
+         * @type {DynamicObjectCollection}
+         * @readonly
+         */
+        targetCollection : {
+            get : function() {
+                return this._targetCollection;
+            }
+        },
+        /**
+         * Gets the array of property names used to retrieve the referenced property.
+         * @memberof ReferenceProperty.prototype
+         * @type {String[]}
+         * @readonly
+         */
+        targetPropertyNames : {
+            get : function() {
+                return this._targetPropertyNames;
+            }
+        },
+        /**
+         * Gets the resolved instance of the underlying referenced property.
+         * @memberof ReferenceProperty.prototype
+         * @type {Property}
+         * @readonly
+         */
+        resolvedProperty : {
+            get : function() {
+                return resolve(this);
+            }
         }
+    });
 
-        if (typeof referenceString === 'undefined') {
+    /**
+     * Creates a new instance given the dynamic object collection that will
+     * be used to resolve it and a string indicating the target object id and property.
+     * The format of the string is "objectId#foo.bar", where # separates the id from
+     * property path and . separates sub-properties.  If the reference identifier or
+     * or any sub-properties contains a # . or \ they must be escaped.
+     *
+     * @param {DynamicObject} targetCollection
+     * @param {String} referenceString
+     * @returns A new instance of ReferenceProperty.
+     *
+     * @exception {DeveloperError} invalid referenceString.
+     */
+    ReferenceProperty.fromString = function(targetCollection, referenceString) {
+        //>>includeStart('debug', pragmas.debug);
+        if (!defined(targetCollection)) {
+            throw new DeveloperError('targetCollection is required.');
+        }
+        if (!defined(referenceString)) {
             throw new DeveloperError('referenceString is required.');
         }
+        //>>includeEnd('debug');
 
-        var parts = referenceString.split('.');
-        if (parts.length !== 2) {
-            throw new DeveloperError('referenceString must contain a single . delineating the target object ID and property name.');
+        var identifier;
+        var values = [];
+
+        var inIdentifier = true;
+        var isEscaped = false;
+        var token = '';
+        for (var i = 0; i < referenceString.length; ++i) {
+            var c = referenceString.charAt(i);
+
+            if (isEscaped) {
+                token += c;
+                isEscaped = false;
+            } else if (c === '\\') {
+                isEscaped = true;
+            } else if (inIdentifier && c === '#') {
+                identifier = token;
+                inIdentifier = false;
+                token = '';
+            } else if (!inIdentifier && c === '.') {
+                values.push(token);
+                token = '';
+            } else {
+                token += c;
+            }
         }
+        values.push(token);
 
-        return new ReferenceProperty(dynamicObjectCollection, parts[0], parts[1]);
+        return new ReferenceProperty(targetCollection, identifier, values);
     };
 
     /**
-     * Retrieves the value of the property at the specified time.
+     * Gets the value of the property at the provided time.
      *
-     * @param time The time to evaluate the property.
-     * @param [result] The object to store the result in, if undefined a new instance will be created.
-     * @returns The result parameter or a new instance if the parameter was omitted.
+     * @param {JulianDate} time The time for which to retrieve the value.
+     * @param {Object} [result] The object to store the value into, if omitted, a new instance is created and returned.
+     * @returns {Object} The modified result parameter or a new instance if the result parameter was not supplied.
      */
     ReferenceProperty.prototype.getValue = function(time, result) {
-        var targetProperty = resolve(this);
-        return typeof targetProperty !== 'undefined' && this._targetObject.isAvailable(time) ? targetProperty.getValue(time, result) : undefined;
+        return resolve(this).getValue(time, result);
     };
 
     /**
-     * Retrieves the Cartographic value or values of the property at the specified time if the linked property
-     * is a DynamicPositionProperty or DynamicVertexPositionsProperty.
+     * Gets the value of the property at the provided time and in the provided reference frame.
+     * This method is only valid if the property being referenced is a {@link PositionProperty}.
      *
-     * @param time The time to evaluate the property.
-     * @param [result] The object to store the result in, if undefined a new instance will be created.
-     * @returns The result parameter or a new instance if the parameter was omitted.
+     * @param {JulianDate} time The time for which to retrieve the value.
+     * @param {ReferenceFrame} referenceFrame The desired referenceFrame of the result.
+     * @param {Cartesian3} [result] The object to store the value into, if omitted, a new instance is created and returned.
+     * @returns {Cartesian3} The modified result parameter or a new instance if the result parameter was not supplied.
      */
-    ReferenceProperty.prototype.getValueCartographic = function(time, result) {
-        var targetProperty = resolve(this);
-        return typeof targetProperty !== 'undefined' && this._targetObject.isAvailable(time) ? targetProperty.getValueCartographic(time, result) : undefined;
+    ReferenceProperty.prototype.getValueInReferenceFrame = function(time, referenceFrame, result) {
+        return resolve(this).getValueInReferenceFrame(time, referenceFrame, result);
     };
 
     /**
-     * Retrieves the Cartesian value or values of the property at the specified time if the linked property
-     * is a DynamicPositionProperty, DynamicVertexPositionsProperty, or DynamicDirectionsProperty.
+     * Gets the {@link Material} type at the provided time.
+     * This method is only valid if the property being referenced is a {@link MaterialProperty}.
      *
-     * @param time The time to evaluate the property.
-     * @param [result] The object to store the result in, if undefined a new instance will be created.
-     * @returns The result parameter or a new instance if the parameter was omitted.
+     * @param {JulianDate} time The time for which to retrieve the type.
+     * @returns {String} The type of material.
      */
-    ReferenceProperty.prototype.getValueCartesian = function(time, result) {
-        var targetProperty = resolve(this);
-        return typeof targetProperty !== 'undefined' && this._targetObject.isAvailable(time) ? targetProperty.getValueCartesian(time, result) : undefined;
+    ReferenceProperty.prototype.getType = function(time) {
+        return resolve(this).getType(time);
     };
 
     /**
-     * Retrieves the Spherical value or values of the property at the specified time if the linked property
-     * is a DynamicDirectionsProperty.
+     * Compares this property to the provided property and returns
+     * <code>true</code> if they are equal, <code>false</code> otherwise.
      *
-     * @param time The time to evaluate the property.
-     * @param [result] The object to store the result in, if undefined a new instance will be created.
-     * @returns The result parameter or a new instance if the parameter was omitted.
+     * @param {Property} [other] The other property.
+     * @returns {Boolean} <code>true</code> if left and right are equal, <code>false</code> otherwise.
      */
-    ReferenceProperty.prototype.getValueSpherical = function(time, result) {
-        var targetProperty = resolve(this);
-        return typeof targetProperty !== 'undefined' && this._targetObject.isAvailable(time) ? targetProperty.getValueSpherical(time, result) : undefined;
+    ReferenceProperty.prototype.equals = function(other) {
+        if (this === other) {
+            return true;
+        }
+
+        var names = this._targetPropertyNames;
+        var otherNames = other._targetPropertyNames;
+
+        if (this._targetCollection !== other._targetCollection || //
+            this._targetId !== other._targetId || //
+            names.length !== otherNames.length) {
+            return false;
+        }
+
+        var length = this._targetPropertyNames.length;
+        for (var i = 0; i < length; i++) {
+            if (names[i] !== otherNames[i]) {
+                return false;
+            }
+        }
+
+        return true;
+    };
+
+    ReferenceProperty.prototype._onTargetObjectDefinitionChanged = function(targetObject, name, value, oldValue) {
+        if (this._targetPropertyNames[0] === name) {
+            this._targetProperty = undefined;
+            this._definitionChanged.raiseEvent(this);
+        }
+    };
+
+    ReferenceProperty.prototype._onCollectionChanged = function(collection, added, removed) {
+        var targetObject = this._targetObject;
+        if (defined(targetObject)) {
+            if (removed.indexOf(targetObject) === -1) {
+                targetObject.definitionChanged.removeEventListener(ReferenceProperty.prototype._onTargetObjectDefinitionChanged, this);
+                this._targetProperty = undefined;
+                this._targetObject = undefined;
+                this._definitionChanged.raiseEvent(this);
+            }
+        }
     };
 
     return ReferenceProperty;

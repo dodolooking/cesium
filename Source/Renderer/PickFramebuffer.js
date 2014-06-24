@@ -1,20 +1,18 @@
 /*global define*/
 define([
-        '../Core/defaultValue',
-        '../Core/destroyObject',
-        '../Core/Color',
-        '../Core/DeveloperError',
         '../Core/BoundingRectangle',
-        './ClearCommand',
+        '../Core/Color',
+        '../Core/defaultValue',
+        '../Core/defined',
+        '../Core/destroyObject',
         './PassState',
         './RenderbufferFormat'
     ], function(
-        defaultValue,
-        destroyObject,
-        Color,
-        DeveloperError,
         BoundingRectangle,
-        ClearCommand,
+        Color,
+        defaultValue,
+        defined,
+        destroyObject,
         PassState,
         RenderbufferFormat) {
     "use strict";
@@ -31,46 +29,37 @@ define([
             rectangle : new BoundingRectangle()
         };
 
-        // Clear to black.  Since this is the background color, no objects will be black
-        var command = new ClearCommand();
-        command.color = new Color(0.0, 0.0, 0.0, 0.0);
-        command.depth = 1.0;
-        command.stencil = 0;
-
         this._context = context;
         this._fb = undefined;
         this._passState = passState;
         this._width = 0;
         this._height = 0;
-        this._clearCommand = command;
     };
 
     PickFramebuffer.prototype.begin = function(screenSpaceRectangle) {
         var context = this._context;
-        var width = context.getCanvas().clientWidth;
-        var height = context.getCanvas().clientHeight;
+        var width = context.drawingBufferWidth;
+        var height = context.drawingBufferHeight;
 
         BoundingRectangle.clone(screenSpaceRectangle, this._passState.scissorTest.rectangle);
 
         // Initially create or recreate renderbuffers and framebuffer used for picking
-        if ((typeof this._fb === 'undefined') || (this._width !== width) || (this._height !== height)) {
+        if ((!defined(this._fb)) || (this._width !== width) || (this._height !== height)) {
             this._width = width;
             this._height = height;
 
             this._fb = this._fb && this._fb.destroy();
             this._fb = context.createFramebuffer({
-                colorTexture : context.createTexture2D({
+                colorTextures : [context.createTexture2D({
                     width : width,
                     height : height
-                }),
+                })],
                 depthRenderbuffer : context.createRenderbuffer({
                     format : RenderbufferFormat.DEPTH_COMPONENT16
                 })
             });
             this._passState.framebuffer = this._fb;
         }
-
-        this._clearCommand.execute(context, this._passState);
 
         return this._passState;
     };
@@ -115,7 +104,7 @@ define([
                 colorScratch.alpha = Color.byteToFloat(pixels[index + 3]);
 
                 var object = context.getObjectByPickColor(colorScratch);
-                if (typeof object !== 'undefined') {
+                if (defined(object)) {
                     return object;
                 }
             }

@@ -1,44 +1,15 @@
 /*global define*/
-define(['../Core/Enumeration'], function(Enumeration) {
+define(function() {
     "use strict";
 
     /**
-     * DOC_TBA
-     *
-     * @exports MipmapHint
+     * @private
      */
     var MipmapHint = {
-        /**
-         * DOC_TBA
-         *
-         * @constant
-         * @type {Enumeration}
-         */
-        DONT_CARE : new Enumeration(0x1100, 'DONT_CARE'),
+        DONT_CARE : 0x1100,
+        FASTEST : 0x1101,
+        NICEST : 0x1102,
 
-        /**
-         * DOC_TBA
-         *
-         * @constant
-         * @type {Enumeration}
-         */
-        FASTEST : new Enumeration(0x1101, 'FASTEST'),
-
-        /**
-         * DOC_TBA
-         *
-         * @constant
-         * @type {Enumeration}
-         */
-        NICEST : new Enumeration(0x1102, 'NICEST'),
-
-        /**
-         * DOC_TBA
-         *
-         * @param mipmapHint
-         *
-         * @returns {Boolean}
-         */
         validate : function(mipmapHint) {
             return ((mipmapHint === MipmapHint.DONT_CARE) ||
                     (mipmapHint === MipmapHint.FASTEST) ||

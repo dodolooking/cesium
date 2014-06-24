@@ -1,5 +1,5 @@
 /*global define*/
-define(['./Enumeration'], function(Enumeration) {
+define(function() {
     "use strict";
 
     /**
@@ -14,24 +14,26 @@ define(['./Enumeration'], function(Enumeration) {
         /**
          * Represents that no part of an object is visible.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        NONE : new Enumeration(-1, 'NONE'),
+        NONE : -1,
+
         /**
         * Represents that part, but not all, of an object is visible
         *
+        * @type {Number}
         * @constant
-        * @type {Enumeration}
         */
-        PARTIAL : new Enumeration(0, 'PARTIAL'),
+        PARTIAL : 0,
+
         /**
         * Represents that an object is visible in its entirety.
         *
+        * @type {Number}
         * @constant
-        * @type {Enumeration}
         */
-        FULL : new Enumeration(1, 'FULL')
+        FULL : 1
     };
 
     return Visibility;

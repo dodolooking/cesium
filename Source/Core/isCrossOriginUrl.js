@@ -1,5 +1,8 @@
 /*global define*/
-define(function() {
+define([
+        './defined'
+    ], function(
+        defined) {
     "use strict";
 
     var a;
@@ -10,7 +13,7 @@ define(function() {
      * @private
      */
     var isCrossOriginUrl = function(url) {
-        if (typeof a === 'undefined') {
+        if (!defined(a)) {
             a = document.createElement('a');
         }
 

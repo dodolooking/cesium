@@ -1,34 +1,28 @@
 /*global defineSuite*/
 defineSuite([
-         'Specs/createContext',
-         'Specs/destroyContext',
-         'Specs/createCamera',
-         'Specs/createFrameState',
-         'Core/BoundingRectangle',
-         'Core/Color',
-         'Core/Math',
-         'Core/Matrix4',
-         'Core/PrimitiveType',
-         'Core/Cartesian2',
-         'Core/Cartesian3',
-         'Core/EncodedCartesian3',
-         'Renderer/BufferUsage',
-         'Renderer/ClearCommand'
-     ], 'Renderer/BuiltinFunctions', function(
-         createContext,
-         destroyContext,
-         createCamera,
-         createFrameState,
-         BoundingRectangle,
-         Color,
-         CesiumMath,
-         Matrix4,
-         PrimitiveType,
-         Cartesian2,
-         Cartesian3,
-         EncodedCartesian3,
-         BufferUsage,
-         ClearCommand) {
+        'Core/BoundingRectangle',
+        'Core/Cartesian3',
+        'Core/EncodedCartesian3',
+        'Core/PrimitiveType',
+        'Renderer/BufferUsage',
+        'Renderer/ClearCommand',
+        'Renderer/DrawCommand',
+        'Specs/createCamera',
+        'Specs/createContext',
+        'Specs/createFrameState',
+        'Specs/destroyContext'
+    ], 'Renderer/BuiltinFunctions', function(
+        BoundingRectangle,
+        Cartesian3,
+        EncodedCartesian3,
+        PrimitiveType,
+        BufferUsage,
+        ClearCommand,
+        DrawCommand,
+        createCamera,
+        createContext,
+        createFrameState,
+        destroyContext) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
 
@@ -46,22 +40,22 @@ defineSuite([
         var vs = 'attribute vec4 position; void main() { gl_PointSize = 1.0; gl_Position = position; }';
         var sp = context.createShaderProgram(vs, fs);
 
-        var va = context.createVertexArray();
-        va.addAttribute({
-            index : sp.getVertexAttributes().position.index,
+        var va = context.createVertexArray([{
+            index : sp.vertexAttributes.position.index,
             vertexBuffer : context.createVertexBuffer(new Float32Array([0, 0, 0, 1]), BufferUsage.STATIC_DRAW),
             componentsPerAttribute : 4
-        });
+        }]);
 
         ClearCommand.ALL.execute(context);
         expect(context.readPixels()).toEqual([0, 0, 0, 0]);
 
-        context.draw({
+        var command = new DrawCommand({
             primitiveType : PrimitiveType.POINTS,
             shaderProgram : sp,
             vertexArray : va,
             uniformMap : uniformMap
         });
+        command.execute(context);
         expect(context.readPixels()).toEqual([255, 255, 255, 255]);
 
         sp = sp.destroy();
@@ -102,15 +96,15 @@ defineSuite([
     });
 
     it('has czm_eyeToWindowCoordinates', function() {
-        var camera = createCamera(context);
+        var camera = createCamera();
         camera.frustum.near = 1.0;
 
-        var canvas = context.getCanvas();
+        var canvas = context.canvas;
         var width = canvas.clientWidth;
         var height = canvas.clientHeight;
         var vp = new BoundingRectangle(0.0, 0.0, width, height);
-        context.getUniformState().setViewport(vp);
-        context.getUniformState().update(createFrameState(camera));
+        context.uniformState.viewport = vp;
+        context.uniformState.update(context, createFrameState(camera));
 
         var fs =
             'void main() { ' +
@@ -128,15 +122,15 @@ defineSuite([
     });
 
     it('has czm_windowToEyeCoordinates', function() {
-        var camera = createCamera(context);
+        var camera = createCamera();
         camera.frustum.near = 1.0;
 
-        var canvas = context.getCanvas();
+        var canvas = context.canvas;
         var width = canvas.clientWidth;
         var height = canvas.clientHeight;
         var vp = new BoundingRectangle(0.0, 0.0, width, height);
-        context.getUniformState().setViewport(vp);
-        context.getUniformState().update(createFrameState(camera));
+        context.uniformState.viewport = vp;
+        context.uniformState.update(context, createFrameState(camera));
 
         var fs =
             'void main() { ' +
@@ -153,9 +147,24 @@ defineSuite([
         verifyDraw(fs);
     });
 
+    it('has czm_tangentToEyeSpaceMatrix', function() {
+        var fs =
+            'void main() { ' +
+            '  vec3 tangent = vec3(1.0, 0.0, 0.0); ' +
+            '  vec3 binormal = vec3(0.0, 1.0, 0.0); ' +
+            '  vec3 normal = vec3(0.0, 0.0, 1.0); ' +
+            '  mat3 expected = mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0); ' +
+            '  mat3 actual = czm_tangentToEyeSpaceMatrix(normal, tangent, binormal); ' +
+            '  gl_FragColor = vec4(actual == expected); ' +
+            '}';
+        verifyDraw(fs);
+    });
+
     it('has czm_translateRelativeToEye', function() {
-        var camera = createCamera(context, new Cartesian3(1.0, 2.0, 3.0));
-        context.getUniformState().update(createFrameState(camera));
+        var camera = createCamera({
+            eye : new Cartesian3(1.0, 2.0, 3.0)
+        });
+        context.uniformState.update(context, createFrameState(camera));
 
         var p = new Cartesian3(6.0, 5.0, 4.0);
         var encoded = EncodedCartesian3.fromCartesian(p);
@@ -173,8 +182,8 @@ defineSuite([
             'uniform vec3 u_high;' +
             'uniform vec3 u_low;' +
             'void main() { ' +
-            '  vec3 p = czm_translateRelativeToEye(u_high, u_low);' +
-            '  gl_FragColor = vec4(p == vec3(5.0, 3.0, 1.0)); ' +
+            '  vec4 p = czm_translateRelativeToEye(u_high, u_low);' +
+            '  gl_FragColor = vec4(p == vec4(5.0, 3.0, 1.0, 1.0)); ' +
             '}';
 
         verifyDraw(fs, uniformMap);

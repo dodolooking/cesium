@@ -1,9 +1,12 @@
 /*global define*/
 define([
-        '../../Core/Color'
-       ],
-        function(
-         Color) {
+        '../../Core/Color',
+        '../../Core/defined',
+        '../../Core/JulianDate'
+    ], function(
+        Color,
+        defined,
+        JulianDate) {
     "use strict";
 
     function TimelineTrack(interval, pixelHeight, color, backgroundColor) {
@@ -18,21 +21,21 @@ define([
         var stopInterval = this.interval.stop;
 
         var spanStart = renderState.startJulian;
-        var spanStop = renderState.startJulian.addSeconds(renderState.duration);
+        var spanStop = JulianDate.addSeconds(renderState.startJulian, renderState.duration, new JulianDate());
 
-        if (startInterval.lessThan(spanStart) && stopInterval.greaterThan(spanStop)) {
+        if (JulianDate.lessThan(startInterval, spanStart) && JulianDate.greaterThan(stopInterval, spanStop)) {
             //The track takes up the entire visible span.
             context.fillStyle = this.color.toCssColorString();
             context.fillRect(0, renderState.y, renderState.timeBarWidth, this.height);
-        } else if (startInterval.lessThanOrEquals(spanStop) && stopInterval.greaterThanOrEquals(spanStart)) {
+        } else if (JulianDate.lessThanOrEquals(startInterval, spanStop) && JulianDate.greaterThanOrEquals(stopInterval, spanStart)) {
             //The track only takes up some of the visible span, compute that span.
             var x;
             var start, stop;
             for (x = 0; x < renderState.timeBarWidth; ++x) {
-                var currentTime = renderState.startJulian.addSeconds((x / renderState.timeBarWidth) * renderState.duration);
-                if (typeof start === 'undefined' && currentTime.greaterThanOrEquals(startInterval)) {
+                var currentTime = JulianDate.addSeconds(renderState.startJulian, (x / renderState.timeBarWidth) * renderState.duration, new JulianDate());
+                if (!defined(start) && JulianDate.greaterThanOrEquals(currentTime, startInterval)) {
                     start = x;
-                } else if (typeof stop === 'undefined' && currentTime.greaterThanOrEquals(stopInterval)) {
+                } else if (!defined(stop) && JulianDate.greaterThanOrEquals(currentTime, stopInterval)) {
                     stop = x;
                 }
             }
@@ -40,8 +43,8 @@ define([
             context.fillStyle = this.backgroundColor.toCssColorString();
             context.fillRect(0, renderState.y, renderState.timeBarWidth, this.height);
 
-            if (typeof start !== 'undefined') {
-                if (typeof stop === 'undefined') {
+            if (defined(start)) {
+                if (!defined(stop)) {
                     stop = renderState.timeBarWidth;
                 }
                 context.fillStyle = this.color.toCssColorString();

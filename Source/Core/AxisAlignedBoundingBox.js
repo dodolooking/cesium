@@ -1,13 +1,15 @@
 /*global define*/
 define([
-        './defaultValue',
-        './DeveloperError',
         './Cartesian3',
+        './defaultValue',
+        './defined',
+        './DeveloperError',
         './Intersect'
     ], function(
-        defaultValue,
-        DeveloperError,
         Cartesian3,
+        defaultValue,
+        defined,
+        DeveloperError,
         Intersect) {
     "use strict";
 
@@ -21,23 +23,26 @@ define([
      * @param {Cartesian3} [center] The center of the box; automatically computed if not supplied.
      *
      * @see BoundingSphere
+     * @see BoundingRectangle
      */
     var AxisAlignedBoundingBox = function(minimum, maximum, center) {
         /**
          * The minimum point defining the bounding box.
          * @type {Cartesian3}
+         * @default {@link Cartesian3.ZERO}
          */
         this.minimum = Cartesian3.clone(defaultValue(minimum, Cartesian3.ZERO));
 
         /**
          * The maximum point defining the bounding box.
          * @type {Cartesian3}
+         * @default {@link Cartesian3.ZERO}
          */
         this.maximum = Cartesian3.clone(defaultValue(maximum, Cartesian3.ZERO));
 
         //If center was not defined, compute it.
-        if (typeof center === 'undefined') {
-            center = Cartesian3.add(this.minimum, this.maximum);
+        if (!defined(center)) {
+            center = Cartesian3.add(this.minimum, this.maximum, new Cartesian3());
             Cartesian3.multiplyByScalar(center, 0.5, center);
         } else {
             center = Cartesian3.clone(center);
@@ -53,22 +58,21 @@ define([
     /**
      * Computes an instance of an AxisAlignedBoundingBox. The box is determined by
      * finding the points spaced the farthest apart on the x, y, and z axes.
-     * @memberof AxisAlignedBoundingBox
      *
-     * @param {Array} positions List of points that the bounding box will enclose.  Each point must have a <code>x</code>, <code>y</code>, and <code>z</code> properties.
+     * @param {Cartesian3[]} positions List of points that the bounding box will enclose.  Each point must have a <code>x</code>, <code>y</code>, and <code>z</code> properties.
      * @param {AxisAlignedBoundingBox} [result] The object onto which to store the result.
-     * @return {AxisAlignedBoundingBox} The modified result parameter or a new AxisAlignedBoundingBox instance if one was not provided.
+     * @returns {AxisAlignedBoundingBox} The modified result parameter or a new AxisAlignedBoundingBox instance if one was not provided.
      *
      * @example
      * // Compute an axis aligned bounding box enclosing two points.
-     * var box = AxisAlignedBoundingBox.fromPoints([new Cartesian3(2, 0, 0), new Cartesian3(-2, 0, 0)]);
+     * var box = Cesium.AxisAlignedBoundingBox.fromPoints([new Cesium.Cartesian3(2, 0, 0), new Cesium.Cartesian3(-2, 0, 0)]);
      */
     AxisAlignedBoundingBox.fromPoints = function(positions, result) {
-        if (typeof result === 'undefined') {
+        if (!defined(result)) {
             result = new AxisAlignedBoundingBox();
         }
 
-        if (typeof positions === 'undefined' || positions.length === 0) {
+        if (!defined(positions) || positions.length === 0) {
             result.minimum = Cartesian3.clone(Cartesian3.ZERO, result.minimum);
             result.maximum = Cartesian3.clone(Cartesian3.ZERO, result.maximum);
             result.center = Cartesian3.clone(Cartesian3.ZERO, result.center);
@@ -116,20 +120,17 @@ define([
 
     /**
      * Duplicates a AxisAlignedBoundingBox instance.
-     * @memberof AxisAlignedBoundingBox
      *
      * @param {AxisAlignedBoundingBox} box The bounding box to duplicate.
      * @param {AxisAlignedBoundingBox} [result] The object onto which to store the result.
-     * @return {AxisAlignedBoundingBox} The modified result parameter or a new AxisAlignedBoundingBox instance if none was provided.
-     *
-     * @exception {DeveloperError} box is required.
+     * @returns {AxisAlignedBoundingBox} The modified result parameter or a new AxisAlignedBoundingBox instance if none was provided. (Returns undefined if box is undefined)
      */
     AxisAlignedBoundingBox.clone = function(box, result) {
-        if (typeof box === 'undefined') {
-            throw new DeveloperError('box is required');
+        if (!defined(box)) {
+            return undefined;
         }
 
-        if (typeof result === 'undefined') {
+        if (!defined(result)) {
             return new AxisAlignedBoundingBox(box.minimum, box.maximum);
         }
 
@@ -142,16 +143,15 @@ define([
     /**
      * Compares the provided AxisAlignedBoundingBox componentwise and returns
      * <code>true</code> if they are equal, <code>false</code> otherwise.
-     * @memberof AxisAlignedBoundingBox
      *
      * @param {AxisAlignedBoundingBox} [left] The first AxisAlignedBoundingBox.
      * @param {AxisAlignedBoundingBox} [right] The second AxisAlignedBoundingBox.
-     * @return {Boolean} <code>true</code> if left and right are equal, <code>false</code> otherwise.
+     * @returns {Boolean} <code>true</code> if left and right are equal, <code>false</code> otherwise.
      */
     AxisAlignedBoundingBox.equals = function(left, right) {
         return (left === right) ||
-               ((typeof left !== 'undefined') &&
-                (typeof right !== 'undefined') &&
+               ((defined(left)) &&
+                (defined(right)) &&
                 Cartesian3.equals(left.center, right.center) &&
                 Cartesian3.equals(left.minimum, right.minimum) &&
                 Cartesian3.equals(left.maximum, right.maximum));
@@ -160,27 +160,25 @@ define([
     var intersectScratch = new Cartesian3();
     /**
      * Determines which side of a plane a box is located.
-     * @memberof AxisAlignedBoundingBox
      *
      * @param {AxisAlignedBoundingBox} box The bounding box to test.
      * @param {Cartesian4} plane The coefficients of the plane in the form <code>ax + by + cz + d = 0</code>
      *                           where the coefficients a, b, c, and d are the components x, y, z, and w
-     *                           of the {Cartesian4}, respectively.
-     * @return {Intersect} {Intersect.INSIDE} if the entire box is on the side of the plane the normal is pointing,
-     *                     {Intersect.OUTSIDE} if the entire box is on the opposite side, and {Intersect.INTERSETING}
-     *                     if the box intersects the plane.
-     *
-     * @exception {DeveloperError} box is required.
-     * @exception {DeveloperError} plane is required.
+     *                           of the {@link Cartesian4}, respectively.
+     * @returns {Intersect} {@link Intersect.INSIDE} if the entire box is on the side of the plane
+     *                      the normal is pointing, {@link Intersect.OUTSIDE} if the entire box is
+     *                      on the opposite side, and {@link Intersect.INTERSECTING} if the box
+     *                      intersects the plane.
      */
     AxisAlignedBoundingBox.intersect = function(box, plane) {
-        if (typeof box === 'undefined') {
+        //>>includeStart('debug', pragmas.debug);
+        if (!defined(box)) {
             throw new DeveloperError('box is required.');
         }
-
-        if (typeof plane === 'undefined') {
+        if (!defined(plane)) {
             throw new DeveloperError('plane is required.');
         }
+        //>>includeEnd('debug');
 
         intersectScratch = Cartesian3.subtract(box.maximum, box.minimum, intersectScratch);
         var h = Cartesian3.multiplyByScalar(intersectScratch, 0.5, intersectScratch); //The positive half diagonal
@@ -201,10 +199,9 @@ define([
 
     /**
      * Duplicates this AxisAlignedBoundingBox instance.
-     * @memberof AxisAlignedBoundingBox
      *
      * @param {AxisAlignedBoundingBox} [result] The object onto which to store the result.
-     * @return {AxisAlignedBoundingBox} The modified result parameter or a new AxisAlignedBoundingBox instance if one was not provided.
+     * @returns {AxisAlignedBoundingBox} The modified result parameter or a new AxisAlignedBoundingBox instance if one was not provided.
      */
     AxisAlignedBoundingBox.prototype.clone = function(result) {
         return AxisAlignedBoundingBox.clone(this, result);
@@ -212,16 +209,14 @@ define([
 
     /**
      * Determines which side of a plane this box is located.
-     * @memberof AxisAlignedBoundingBox
      *
      * @param {Cartesian4} plane The coefficients of the plane in the form <code>ax + by + cz + d = 0</code>
      *                           where the coefficients a, b, c, and d are the components x, y, z, and w
-     *                           of the {Cartesian4}, respectively.
-     * @return {Intersect} {Intersect.INSIDE} if the entire box is on the side of the plane the normal is pointing,
-     *                     {Intersect.OUTSIDE} if the entire box is on the opposite side, and {Intersect.INTERSETING}
-     *                     if the box intersects the plane.
-     *
-     * @exception {DeveloperError} plane is required.
+     *                           of the {@link Cartesian4}, respectively.
+     * @returns {Intersect} {@link Intersect.INSIDE} if the entire box is on the side of the plane
+     *                      the normal is pointing, {@link Intersect.OUTSIDE} if the entire box is
+     *                      on the opposite side, and {@link Intersect.INTERSECTING} if the box
+     *                      intersects the plane.
      */
     AxisAlignedBoundingBox.prototype.intersect = function(plane) {
         return AxisAlignedBoundingBox.intersect(this, plane);
@@ -230,10 +225,9 @@ define([
     /**
      * Compares this AxisAlignedBoundingBox against the provided AxisAlignedBoundingBox componentwise and returns
      * <code>true</code> if they are equal, <code>false</code> otherwise.
-     * @memberof AxisAlignedBoundingBox
      *
      * @param {AxisAlignedBoundingBox} [right] The right hand side AxisAlignedBoundingBox.
-     * @return {Boolean} <code>true</code> if they are equal, <code>false</code> otherwise.
+     * @returns {Boolean} <code>true</code> if they are equal, <code>false</code> otherwise.
      */
     AxisAlignedBoundingBox.prototype.equals = function(right) {
         return AxisAlignedBoundingBox.equals(this, right);

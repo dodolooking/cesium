@@ -1,8 +1,5 @@
 /*global define*/
-define([
-        './Enumeration'
-       ], function(
-         Enumeration) {
+define(function() {
     "use strict";
 
     /**
@@ -17,22 +14,31 @@ define([
     var ClockRange = {
         /**
          * {@link Clock#tick} will always advances the clock in its current direction.
+         *
+         * @type {Number}
+         * @constant
          */
-        UNBOUNDED : new Enumeration(0, 'UNBOUNDED'),
+        UNBOUNDED : 0,
 
         /**
          * When {@link Clock#startTime} or {@link Clock#stopTime} is reached,
          * {@link Clock#tick} will not advance {@link Clock#currentTime} any further.
+         *
+         * @type {Number}
+         * @constant
          */
-        CLAMPED : new Enumeration(1, 'CLAMPED'),
+        CLAMPED : 1,
 
         /**
          * When {@link Clock#stopTime} is reached, {@link Clock#tick} will advance
          * {@link Clock#currentTime} to the opposite end of the interval.  When
          * time is moving backwards, {@link Clock#tick} will not advance past
          * {@link Clock#startTime}
+         *
+         * @type {Number}
+         * @constant
          */
-        LOOP_STOP : new Enumeration(2, 'LOOP_STOP')
+        LOOP_STOP : 2
     };
 
     return ClockRange;

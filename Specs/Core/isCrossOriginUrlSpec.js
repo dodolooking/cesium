@@ -1,10 +1,10 @@
 /*global defineSuite*/
 defineSuite([
-             'Core/isCrossOriginUrl',
-             'ThirdParty/Uri'
-         ], function(
-             isCrossOriginUrl,
-             Uri) {
+        'Core/isCrossOriginUrl',
+        'ThirdParty/Uri'
+    ], function(
+        isCrossOriginUrl,
+        Uri) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
 
@@ -24,7 +24,7 @@ defineSuite([
     });
 
     it('returns true for absolute urls that are cross-origin', function() {
-        expect(isCrossOriginUrl('http://example.com/some/url.jpg')).toEqual(true);
+        expect(isCrossOriginUrl('http://example.invalid/some/url.jpg')).toEqual(true);
 
         // a different scheme counts as cross-origin
         var pageUri = new Uri(location.href);

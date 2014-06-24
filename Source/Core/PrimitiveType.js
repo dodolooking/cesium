@@ -1,69 +1,69 @@
 /*global define*/
-define(['./Enumeration'], function(Enumeration) {
+define(function() {
     "use strict";
 
     /**
-     * DOC_TBA
+     * The type of a geometric primitive, i.e., points, lines, and triangles.
      *
      * @exports PrimitiveType
      */
     var PrimitiveType = {
         /**
-         * DOC_TBA
+         * 0x0000.  Points primitive where each vertex (or index) is a separate point.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        POINTS : new Enumeration(0x0000, 'POINTS'),
+        POINTS : 0x0000,
         /**
-         * DOC_TBA
+         * 0x0001.  Lines primitive where each two vertices (or indices) is a line segment.  Line segments are not necessarily connected.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        LINES : new Enumeration(0x0001, 'LINES'),
+        LINES : 0x0001,
         /**
-         * DOC_TBA
+         * 0x0002.  Line loop primitive where each vertex (or index) after the first connects a line to
+         * the previous vertex, and the last vertex implicitly connects to the first.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        LINE_LOOP : new Enumeration(0x0002, 'LINE_LOOP'),
+        LINE_LOOP : 0x0002,
         /**
-         * DOC_TBA
+         * 0x0003.  Line strip primitive where each vertex (or index) after the first connects a line to the previous vertex.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        LINE_STRIP : new Enumeration(0x0003, 'LINE_STRIP'),
+        LINE_STRIP : 0x0003,
         /**
-         * DOC_TBA
+         * 0x0004.  Triangles primitive where each three vertices (or indices) is a triangle.  Triangles do not necessarily share edges.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        TRIANGLES : new Enumeration(0x0004, 'TRIANGLES'),
+        TRIANGLES : 0x0004,
         /**
-         * DOC_TBA
+         * 0x0005.  Triangle strip primitive where each vertex (or index) after the first two connect to
+         * the previous two vertices forming a triangle.  For example, this can be used to model a wall.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        TRIANGLE_STRIP : new Enumeration(0x0005, 'TRIANGLE_STRIP'),
+        TRIANGLE_STRIP : 0x0005,
         /**
-         * DOC_TBA
+         * 0x0006.  Triangle fan primitive where each vertex (or index) after the first two connect to
+         * the previous vertex and the first vertex forming a triangle.  For example, this can be used
+         * to model a cone or circle.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        TRIANGLE_FAN : new Enumeration(0x0006, 'TRIANGLE_FAN'),
+        TRIANGLE_FAN : 0x0006,
 
         /**
-         * DOC_TBA
-         *
-         * @param primitiveType
-         *
-         * @returns {Boolean}
+         * @private
          */
         validate : function(primitiveType) {
             return ((primitiveType === PrimitiveType.POINTS) ||

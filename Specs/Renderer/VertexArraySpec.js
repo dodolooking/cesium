@@ -1,16 +1,18 @@
 /*global defineSuite*/
 defineSuite([
-         'Specs/createContext',
-         'Specs/destroyContext',
-         'Core/ComponentDatatype',
-         'Core/PrimitiveType',
-         'Renderer/BufferUsage'
-     ], 'Renderer/VertexArray', function(
-         createContext,
-         destroyContext,
-         ComponentDatatype,
-         PrimitiveType,
-         BufferUsage) {
+        'Core/ComponentDatatype',
+        'Core/PrimitiveType',
+        'Renderer/BufferUsage',
+        'Renderer/DrawCommand',
+        'Specs/createContext',
+        'Specs/destroyContext'
+    ], 'Renderer/VertexArray', function(
+        ComponentDatatype,
+        PrimitiveType,
+        BufferUsage,
+        DrawCommand,
+        createContext,
+        destroyContext) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
 
@@ -54,7 +56,7 @@ defineSuite([
         }];
         var va = context.createVertexArray(attributes);
 
-        expect(va.getNumberOfAttributes()).toEqual(1);
+        expect(va.numberOfAttributes).toEqual(1);
         expect(va.getAttribute(0).index).toEqual(0);
         expect(va.getAttribute(0).enabled).toEqual(true);
         expect(va.getAttribute(0).vertexBuffer).toEqual(positionBuffer);
@@ -87,7 +89,7 @@ defineSuite([
         }];
 
         var va = context.createVertexArray(attributes);
-        expect(va.getNumberOfAttributes()).toEqual(2);
+        expect(va.numberOfAttributes).toEqual(2);
         va._bind();
         va._unBind();
         va = va.destroy();
@@ -113,7 +115,7 @@ defineSuite([
         }];
 
         var va = context.createVertexArray(attributes);
-        expect(va.getNumberOfAttributes()).toEqual(2);
+        expect(va.numberOfAttributes).toEqual(2);
         va._bind();
         va._unBind();
         va = va.destroy();
@@ -122,13 +124,12 @@ defineSuite([
     it('adds attributes', function() {
         var positionBuffer = context.createVertexBuffer(3, BufferUsage.STATIC_DRAW);
 
-        var va = context.createVertexArray();
-        va.addAttribute({
+        var va = context.createVertexArray([{
             vertexBuffer : positionBuffer,
             componentsPerAttribute : 3
-        });
+        }]);
 
-        expect(va.getNumberOfAttributes()).toEqual(1);
+        expect(va.numberOfAttributes).toEqual(1);
         expect(va.getAttribute(0).index).toEqual(0);
         expect(va.getAttribute(0).enabled).toEqual(true);
         expect(va.getAttribute(0).vertexBuffer).toEqual(positionBuffer);
@@ -149,7 +150,7 @@ defineSuite([
             componentsPerAttribute : 3
         }];
         var va = context.createVertexArray(attributes);
-        expect(va.getNumberOfAttributes()).toEqual(1);
+        expect(va.numberOfAttributes).toEqual(1);
         expect(va.getAttribute(0).enabled).toEqual(true);
 
         va.getAttribute(0).enabled = false;
@@ -158,50 +159,6 @@ defineSuite([
         va._bind();
         va._unBind();
         va = va.destroy();
-    });
-
-    it('removes attributes', function() {
-        var buffer = context.createVertexBuffer(3, BufferUsage.STATIC_DRAW);
-
-        var va = context.createVertexArray();
-        va.addAttribute({ // implicit index: 0
-            vertexBuffer : buffer,
-            componentsPerAttribute : 1
-        });
-        va.addAttribute({ // implicit index: 1
-            vertexBuffer : buffer,
-            componentsPerAttribute : 2
-        });
-        va.addAttribute({ // implicit index: 2
-            vertexBuffer : buffer,
-            componentsPerAttribute : 3
-        });
-
-        expect(va.getNumberOfAttributes()).toEqual(3);
-        expect(va.getAttribute(0).componentsPerAttribute).toEqual(1);
-        expect(va.getAttribute(1).componentsPerAttribute).toEqual(2);
-        expect(va.getAttribute(2).componentsPerAttribute).toEqual(3);
-
-        expect(va.removeAttribute({
-            index : 1
-        })).toEqual(true);
-        expect(va.getNumberOfAttributes()).toEqual(2);
-        expect(va.getAttribute(0).componentsPerAttribute).toEqual(1);
-        expect(va.getAttribute(1).componentsPerAttribute).toEqual(3);
-
-        expect(va.removeAttribute({
-            index : 0
-        })).toEqual(true);
-        expect(va.getNumberOfAttributes()).toEqual(1);
-        expect(va.getAttribute(0).componentsPerAttribute).toEqual(3);
-
-        expect(va.removeAttribute({
-            index : 2
-        })).toEqual(true);
-        expect(va.getNumberOfAttributes()).toEqual(0);
-        expect(va.removeAttribute({
-            index : 2
-        })).toEqual(false);
     });
 
     // The following specs test draw calls that pull from a constant attribute.
@@ -213,8 +170,8 @@ defineSuite([
 
     it('renders with a one-component constant value', function() {
         var vs =
-            'attribute float attr;' +
             'attribute float firefoxWorkaround;' +
+            'attribute float attr;' +
             'varying vec4 v_color;' +
             'void main() { ' +
             '  v_color = vec4(attr == 0.5) + vec4(firefoxWorkaround);' +
@@ -225,25 +182,24 @@ defineSuite([
             'varying vec4 v_color;' +
             'void main() { gl_FragColor = v_color; }';
         var sp = context.createShaderProgram(vs, fs, {
-            attr : 0,
-            firefoxWorkaround : 1
+            firefoxWorkaround : 0,
+            attr : 1
         });
 
-        var va = context.createVertexArray();
-        va.addAttribute({
-            value : [0.5]
-        });
-        va.addAttribute({
+        var va = context.createVertexArray([{
             vertexBuffer : context.createVertexBuffer(Float32Array.BYTES_PER_ELEMENT, BufferUsage.STATIC_DRAW),
             componentsPerAttribute : 1
-        });
+        }, {
+            value : [0.5]
+        }]);
 
-        context.draw({
+        var command = new DrawCommand({
             primitiveType : PrimitiveType.POINTS,
             shaderProgram : sp,
             vertexArray : va,
             count : 1
         });
+        command.execute(context);
 
         expect(context.readPixels()).toEqual([255, 255, 255, 255]);
 
@@ -253,8 +209,8 @@ defineSuite([
 
     it('renders with a two-component constant value', function() {
         var vs =
-            'attribute vec2 attr;' +
             'attribute float firefoxWorkaround;' +
+            'attribute vec2 attr;' +
             'varying vec4 v_color;' +
             'void main() { ' +
             '  v_color = vec4(attr == vec2(0.25, 0.75)) + vec4(firefoxWorkaround);' +
@@ -265,25 +221,24 @@ defineSuite([
             'varying vec4 v_color;' +
             'void main() { gl_FragColor = v_color; }';
         var sp = context.createShaderProgram(vs, fs, {
-            attr : 0,
-            firefoxWorkaround : 1
+            firefoxWorkaround : 0,
+            attr : 1
         });
 
-        var va = context.createVertexArray();
-        va.addAttribute({
-            value : [0.25, 0.75]
-        });
-        va.addAttribute({
+        var va = context.createVertexArray([{
             vertexBuffer : context.createVertexBuffer(Float32Array.BYTES_PER_ELEMENT, BufferUsage.STATIC_DRAW),
             componentsPerAttribute : 1
-        });
+        }, {
+            value : [0.25, 0.75]
+        }]);
 
-        context.draw({
+        var command = new DrawCommand({
             primitiveType : PrimitiveType.POINTS,
             shaderProgram : sp,
             vertexArray : va,
             count : 1
         });
+        command.execute(context);
 
         expect(context.readPixels()).toEqual([255, 255, 255, 255]);
 
@@ -293,8 +248,8 @@ defineSuite([
 
     it('renders with a three-component constant value', function() {
         var vs =
-            'attribute vec3 attr;' +
             'attribute float firefoxWorkaround;' +
+            'attribute vec3 attr;' +
             'varying vec4 v_color;' +
             'void main() { ' +
             '  v_color = vec4(attr == vec3(0.25, 0.5, 0.75)) + vec4(firefoxWorkaround);' +
@@ -305,25 +260,24 @@ defineSuite([
             'varying vec4 v_color;' +
             'void main() { gl_FragColor = v_color; }';
         var sp = context.createShaderProgram(vs, fs, {
-            attr : 0,
-            firefoxWorkaround : 1
+            firefoxWorkaround : 0,
+            attr : 1
         });
 
-        var va = context.createVertexArray();
-        va.addAttribute({
-            value : [0.25, 0.5, 0.75]
-        });
-        va.addAttribute({
+        var va = context.createVertexArray([{
             vertexBuffer : context.createVertexBuffer(Float32Array.BYTES_PER_ELEMENT, BufferUsage.STATIC_DRAW),
             componentsPerAttribute : 1
-        });
+        }, {
+            value : [0.25, 0.5, 0.75]
+        }]);
 
-        context.draw({
+        var command = new DrawCommand({
             primitiveType : PrimitiveType.POINTS,
             shaderProgram : sp,
             vertexArray : va,
             count : 1
         });
+        command.execute(context);
 
         expect(context.readPixels()).toEqual([255, 255, 255, 255]);
 
@@ -333,8 +287,8 @@ defineSuite([
 
     it('renders with a four-component constant value', function() {
         var vs =
-            'attribute vec4 attr;' +
             'attribute float firefoxWorkaround;' +
+            'attribute vec4 attr;' +
             'varying vec4 v_color;' +
             'void main() { ' +
             '  v_color = vec4(attr == vec4(0.2, 0.4, 0.6, 0.8)) + vec4(firefoxWorkaround);' +
@@ -345,25 +299,24 @@ defineSuite([
             'varying vec4 v_color;' +
             'void main() { gl_FragColor = v_color; }';
         var sp = context.createShaderProgram(vs, fs, {
-            attr : 0,
-            firefoxWorkaround : 1
+            firefoxWorkaround : 0,
+            attr : 1
         });
 
-        var va = context.createVertexArray();
-        va.addAttribute({
-            value : [0.2, 0.4, 0.6, 0.8]
-        });
-        va.addAttribute({
+        var va = context.createVertexArray([{
             vertexBuffer : context.createVertexBuffer(Float32Array.BYTES_PER_ELEMENT, BufferUsage.STATIC_DRAW),
             componentsPerAttribute : 1
-        });
+        }, {
+            value : [0.2, 0.4, 0.6, 0.8]
+        }]);
 
-        context.draw({
+        var command = new DrawCommand({
             primitiveType : PrimitiveType.POINTS,
             shaderProgram : sp,
             vertexArray : va,
             count : 1
         });
+        command.execute(context);
 
         expect(context.readPixels()).toEqual([255, 255, 255, 255]);
 
@@ -385,7 +338,7 @@ defineSuite([
 
         expect(function() {
             return context.createVertexArray(attributes);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('fails to create (provides both vertexBuffer and value)', function() {
@@ -399,7 +352,7 @@ defineSuite([
 
         expect(function() {
             return context.createVertexArray(attributes);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('fails to create with duplicate indices', function() {
@@ -417,7 +370,7 @@ defineSuite([
 
         expect(function() {
             return context.createVertexArray(attributes);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('fails to create (componentsPerAttribute missing)', function() {
@@ -429,7 +382,7 @@ defineSuite([
 
         expect(function() {
             return context.createVertexArray(attributes);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('fails to create (componentsPerAttribute < 1)', function() {
@@ -439,7 +392,7 @@ defineSuite([
 
         expect(function() {
             return context.createVertexArray(attributes);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('fails to create (componentsPerAttribute > 4)', function() {
@@ -449,7 +402,7 @@ defineSuite([
 
         expect(function() {
             return context.createVertexArray(attributes);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('fails to create (value.length < 1)', function() {
@@ -459,7 +412,7 @@ defineSuite([
 
         expect(function() {
             return context.createVertexArray(attributes);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('fails to create (value.length > 4)', function() {
@@ -469,7 +422,7 @@ defineSuite([
 
         expect(function() {
             return context.createVertexArray(attributes);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('fails to create (componentDatatype)', function() {
@@ -483,7 +436,7 @@ defineSuite([
 
         expect(function() {
             return context.createVertexArray(attributes);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('fails to create (strideInBytes)', function() {
@@ -497,58 +450,31 @@ defineSuite([
 
         expect(function() {
             return context.createVertexArray(attributes);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('fails to get attribute', function() {
-        var va = context.createVertexArray();
+        var attributes = [{
+            value : [0.0, 0.0, 0.0],
+            componentsPerAttribute : 3
+        }];
+        var va = context.createVertexArray(attributes);
 
         expect(function() {
             return va.getAttribute();
-        }).toThrow();
-    });
-
-    it('fails to add attribute with duplicate index', function() {
-        var buffer = context.createVertexBuffer(3, BufferUsage.STATIC_DRAW);
-
-        var va = context.createVertexArray();
-        va.addAttribute({
-            index : 1,
-            vertexBuffer : buffer,
-            componentsPerAttribute : 3
-        });
-
-        expect(function() {
-            va.addAttribute({
-                index : 1,
-                vertexBuffer : buffer,
-                componentsPerAttribute : 3
-            });
-        }).toThrow();
-    });
-
-    it('fails to add attribute without vertex buffer', function() {
-        var va = context.createVertexArray();
-
-        expect(function() {
-            va.addAttribute({});
-        }).toThrow();
-    });
-
-    it('fails to remove attribute without an index', function() {
-        var va = context.createVertexArray();
-
-        expect(function() {
-            va.removeAttribute({});
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('fails to destroy', function() {
-        var va = context.createVertexArray();
+        var attributes = [{
+            value : [0.0, 0.0, 0.0],
+            componentsPerAttribute : 3
+        }];
+        var va = context.createVertexArray(attributes);
         va.destroy();
 
         expect(function() {
             va.destroy();
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 }, 'WebGL');

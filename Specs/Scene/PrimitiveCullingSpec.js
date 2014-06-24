@@ -1,58 +1,62 @@
 /*global defineSuite*/
 defineSuite([
-         'Scene/CompositePrimitive',
-         'Specs/createContext',
-         'Specs/destroyContext',
-         'Specs/createFrameState',
-         'Specs/frameState',
-         'Specs/render',
-         'Core/BoundingSphere',
-         'Core/Cartesian2',
-         'Core/Cartesian3',
-         'Core/Cartographic',
-         'Core/defaultValue',
-         'Core/Ellipsoid',
-         'Core/Math',
-         'Core/Occluder',
-         'Renderer/TextureMinificationFilter',
-         'Renderer/TextureMagnificationFilter',
-         'Renderer/ClearCommand',
-         'Scene/BillboardCollection',
-         'Scene/Camera',
-         'Scene/LabelCollection',
-         'Scene/HorizontalOrigin',
-         'Scene/VerticalOrigin',
-         'Scene/Polygon',
-         'Scene/PolylineCollection',
-         'Scene/SceneMode',
-         'Scene/OrthographicFrustum'
-     ], 'Scene/PrimitiveCulling', function(
-         CompositePrimitive,
-         createContext,
-         destroyContext,
-         createFrameState,
-         frameState,
-         render,
-         BoundingSphere,
-         Cartesian2,
-         Cartesian3,
-         Cartographic,
-         defaultValue,
-         Ellipsoid,
-         CesiumMath,
-         Occluder,
-         TextureMinificationFilter,
-         TextureMagnificationFilter,
-         ClearCommand,
-         BillboardCollection,
-         Camera,
-         LabelCollection,
-         HorizontalOrigin,
-         VerticalOrigin,
-         Polygon,
-         PolylineCollection,
-         SceneMode,
-         OrthographicFrustum) {
+        'Core/BoundingSphere',
+        'Core/Cartesian2',
+        'Core/Cartesian3',
+        'Core/Cartographic',
+        'Core/defaultValue',
+        'Core/Ellipsoid',
+        'Core/Math',
+        'Core/Occluder',
+        'Renderer/TextureMagnificationFilter',
+        'Renderer/TextureMinificationFilter',
+        'Scene/BillboardCollection',
+        'Scene/Camera',
+        'Scene/HorizontalOrigin',
+        'Scene/LabelCollection',
+        'Scene/Material',
+        'Scene/OrthographicFrustum',
+        'Scene/Polygon',
+        'Scene/PolylineCollection',
+        'Scene/PrimitiveCollection',
+        'Scene/SceneMode',
+        'Scene/TextureAtlas',
+        'Scene/VerticalOrigin',
+        'Specs/createCamera',
+        'Specs/createContext',
+        'Specs/createFrameState',
+        'Specs/destroyContext',
+        'Specs/frameState',
+        'Specs/render'
+    ], 'Scene/PrimitiveCulling', function(
+        BoundingSphere,
+        Cartesian2,
+        Cartesian3,
+        Cartographic,
+        defaultValue,
+        Ellipsoid,
+        CesiumMath,
+        Occluder,
+        TextureMagnificationFilter,
+        TextureMinificationFilter,
+        BillboardCollection,
+        Camera,
+        HorizontalOrigin,
+        LabelCollection,
+        Material,
+        OrthographicFrustum,
+        Polygon,
+        PolylineCollection,
+        PrimitiveCollection,
+        SceneMode,
+        TextureAtlas,
+        VerticalOrigin,
+        createCamera,
+        createContext,
+        createFrameState,
+        destroyContext,
+        frameState,
+        render) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
 
@@ -70,45 +74,22 @@ defineSuite([
     });
 
     beforeEach(function() {
-        primitives = new CompositePrimitive();
+        primitives = new PrimitiveCollection();
 
-        camera = new Camera(context.getCanvas());
-        camera.position = new Cartesian3(1.02, 0.0, 0.0);
-        camera.up = Cartesian3.UNIT_Z;
-        camera.direction = camera.position.normalize().negate();
-        camera.frustum.near = 0.01;
-        camera.frustum.far = 10.0;
-        camera.frustum.fovy = CesiumMath.toRadians(60.0);
-        camera.frustum.aspectRatio = 1.0;
+        camera = createCamera({
+            eye : new Cartesian3(1.02, 0.0, 0.0),
+            target : Cartesian3.UNIT_Z,
+            up : new Cartesian3(-1.0, 0.0, 0.0)
+        });
 
-        us = context.getUniformState();
-        us.update(createFrameState(camera));
+        us = context.uniformState;
+        us.update(context, createFrameState(camera));
     });
 
     afterEach(function() {
         primitives = primitives && primitives.destroy();
         us = undefined;
     });
-
-    function verifyNoDraw() {
-        ClearCommand.ALL.execute(context);
-        expect(context.readPixels()).toEqual([0, 0, 0, 0]);
-
-        var numRendered = render(context, frameState, primitives);
-        expect(context.readPixels()).toEqual([0, 0, 0, 0]);
-
-        return numRendered;
-    }
-
-    function verifyDraw() {
-        ClearCommand.ALL.execute(context);
-        expect(context.readPixels()).toEqual([0, 0, 0, 0]);
-
-        var numRendered = render(context, frameState, primitives);
-        expect(context.readPixels()).toNotEqual([0, 0, 0, 0]);
-
-        return numRendered;
-    }
 
     function testCullIn3D(primitive) {
         primitives.add(primitive);
@@ -122,22 +103,22 @@ defineSuite([
         // get bounding volume for primitive and reposition camera so its in the the frustum.
         var commandList = [];
         primitive.update(context, frameState, commandList);
-        var bv = commandList[0].colorList[0].boundingVolume;
-        camera.position = bv.center.clone();
-        camera.position = camera.position.normalize().multiplyByScalar(camera.position.magnitude() + 1.0);
-        camera.direction = camera.position.negate().normalize();
-        camera.right = camera.direction.cross(Cartesian3.UNIT_Z);
-        camera.up = camera.right.cross(camera.direction);
+        var bv = commandList[0].boundingVolume;
+        camera.position = Cartesian3.clone(bv.center);
+        camera.position = Cartesian3.multiplyByScalar(Cartesian3.normalize(camera.position, new Cartesian3()), Cartesian3.magnitude(camera.position) + 1.0, new Cartesian3());
+        camera.direction = Cartesian3.normalize(Cartesian3.negate(camera.position, new Cartesian3()), new Cartesian3());
+        camera.right = Cartesian3.cross(camera.direction, Cartesian3.UNIT_Z, new Cartesian3());
+        camera.up = Cartesian3.cross(camera.right, camera.direction, new Cartesian3());
         frameState.cullingVolume = camera.frustum.computeCullingVolume(camera.position, camera.direction, camera.up);
 
-        var numRendered = verifyDraw();
+        var numRendered = render(context, frameState, primitives);
         expect(numRendered).toBeGreaterThan(0);
 
         // reposition camera so bounding volume is outside frustum.
-        camera.position = camera.position.add(camera.right.multiplyByScalar(8000000000.0));
+        Cartesian3.add(camera.position, Cartesian3.multiplyByScalar(camera.right, 8000000000.0, new Cartesian3()), camera.position);
         frameState.cullingVolume = camera.frustum.computeCullingVolume(camera.position, camera.direction, camera.up);
 
-        numRendered = verifyNoDraw();
+        numRendered = render(context, frameState, primitives);
         expect(numRendered).toEqual(0);
 
         frameState.camera = savedCamera;
@@ -158,22 +139,22 @@ defineSuite([
         // get bounding volume for primitive and reposition camera so its in the the frustum.
         var commandList = [];
         primitive.update(context, frameState, commandList);
-        var bv = commandList[0].colorList[0].boundingVolume;
-        camera.position = bv.center.clone();
+        var bv = commandList[0].boundingVolume;
+        camera.position = Cartesian3.clone(bv.center);
         camera.position.z += 1.0;
-        camera.direction = Cartesian3.UNIT_Z.negate();
-        camera.up = Cartesian3.UNIT_Y;
-        camera.right = camera.direction.cross(camera.up);
+        camera.direction = Cartesian3.negate(Cartesian3.UNIT_Z, new Cartesian3());
+        camera.up = Cartesian3.clone(Cartesian3.UNIT_Y);
+        camera.right = Cartesian3.cross(camera.direction, camera.up, new Cartesian3());
         frameState.cullingVolume = camera.frustum.computeCullingVolume(camera.position, camera.direction, camera.up);
 
-        var numRendered = verifyDraw();
+        var numRendered = render(context, frameState, primitives);
         expect(numRendered).toBeGreaterThan(0);
 
         // reposition camera so bounding volume is outside frustum.
-        camera.position = camera.position.add(camera.right.multiplyByScalar(8000000000.0));
+        Cartesian3.add(camera.position, Cartesian3.multiplyByScalar(camera.right, 8000000000.0, new Cartesian3()), camera.position);
         frameState.cullingVolume = camera.frustum.computeCullingVolume(camera.position, camera.direction, camera.up);
 
-        numRendered = verifyNoDraw();
+        numRendered = render(context, frameState, primitives);
         expect(numRendered).toEqual(0);
 
         frameState.mode = savedMode;
@@ -203,22 +184,22 @@ defineSuite([
         // get bounding volume for primitive and reposition camera so its in the the frustum.
         var commandList = [];
         primitive.update(context, frameState, commandList);
-        var bv = commandList[0].colorList[0].boundingVolume;
-        camera.position = bv.center.clone();
+        var bv = commandList[0].boundingVolume;
+        camera.position = Cartesian3.clone(bv.center);
         camera.position.z += 1.0;
-        camera.direction = Cartesian3.UNIT_Z.negate();
-        camera.up = Cartesian3.UNIT_Y;
-        camera.right = camera.direction.cross(camera.up);
+        camera.direction = Cartesian3.negate(Cartesian3.UNIT_Z, new Cartesian3());
+        camera.up = Cartesian3.clone(Cartesian3.UNIT_Y);
+        camera.right = Cartesian3.cross(camera.direction, camera.up, new Cartesian3());
         frameState.cullingVolume = camera.frustum.computeCullingVolume(camera.position, camera.direction, camera.up);
 
-        var numRendered = verifyDraw();
+        var numRendered = render(context, frameState, primitives);
         expect(numRendered).toBeGreaterThan(0);
 
         // reposition camera so bounding volume is outside frustum.
-        camera.position = camera.position.add(camera.right.multiplyByScalar(8000000000.0));
+        Cartesian3.add(camera.position, Cartesian3.multiplyByScalar(camera.right, 8000000000.0, new Cartesian3()), camera.position);
         frameState.cullingVolume = camera.frustum.computeCullingVolume(camera.position, camera.direction, camera.up);
 
-        numRendered = verifyNoDraw();
+        numRendered = render(context, frameState, primitives);
         expect(numRendered).toEqual(0);
 
         frameState.mode = mode;
@@ -235,28 +216,28 @@ defineSuite([
         // get bounding volume for primitive and reposition camera so its in the the frustum.
         var commandList = [];
         primitive.update(context, frameState, commandList);
-        var bv = commandList[0].colorList[0].boundingVolume;
-        camera.position = bv.center.clone();
-        camera.position = camera.position.normalize().multiplyByScalar(camera.position.magnitude() + 1.0);
-        camera.direction = camera.position.negate().normalize();
-        camera.right = camera.direction.cross(Cartesian3.UNIT_Z);
-        camera.up = camera.right.cross(camera.direction);
+        var bv = commandList[0].boundingVolume;
+        camera.position = Cartesian3.clone(bv.center);
+        camera.position = Cartesian3.multiplyByScalar(Cartesian3.normalize(camera.position, new Cartesian3()), Cartesian3.magnitude(camera.position) + 1.0, new Cartesian3());
+        camera.direction = Cartesian3.normalize(Cartesian3.negate(camera.position, new Cartesian3()), new Cartesian3());
+        camera.right = Cartesian3.cross(camera.direction, Cartesian3.UNIT_Z, new Cartesian3());
+        camera.up = Cartesian3.cross(camera.right, camera.direction, new Cartesian3());
 
         var occluder = new Occluder(new BoundingSphere(Cartesian3.ZERO, bv.radius * 2.0), camera.position);
         frameState.occluder = occluder;
 
-        var numRendered = verifyDraw();
+        var numRendered = render(context, frameState, primitives);
         expect(numRendered).toBeGreaterThan(0);
 
         // reposition camera so bounding volume on the other side of the ellipsoid.
-        camera.position = camera.position.negate();
-        camera.direction = camera.position.negate().normalize();
-        camera.right = camera.direction.cross(Cartesian3.UNIT_Z);
-        camera.up = camera.right.cross(camera.direction);
+        camera.position = Cartesian3.negate(camera.position, new Cartesian3());
+        camera.direction = Cartesian3.normalize(Cartesian3.negate(camera.position, new Cartesian3()), new Cartesian3());
+        camera.right = Cartesian3.cross(camera.direction, Cartesian3.UNIT_Z, new Cartesian3());
+        camera.up = Cartesian3.cross(camera.right, camera.direction, new Cartesian3());
 
-        occluder.setCameraPosition(camera.position);
+        occluder.cameraPosition = camera.position;
 
-        numRendered = verifyNoDraw();
+        numRendered = render(context, frameState, primitives);
         expect(numRendered).toEqual(0);
 
         frameState.camera = savedCamera;
@@ -270,7 +251,7 @@ defineSuite([
         primitives.add(billboard);
 
         camera.position = new Cartesian3(2414237.2401024024, -8854079.165742973, 7501568.895960614);
-        camera.direction = camera.position.negate().normalize();
+        camera.direction = Cartesian3.normalize(Cartesian3.negate(camera.position, new Cartesian3()), new Cartesian3());
 
         var savedCamera = frameState.camera;
         frameState.camera = camera;
@@ -278,16 +259,16 @@ defineSuite([
         var occluder = new Occluder(new BoundingSphere(Cartesian3.ZERO, Ellipsoid.WGS84.minimumRadius), camera.position);
         frameState.occluder = occluder;
 
-        var numRendered = verifyDraw();
+        var numRendered = render(context, frameState, primitives);
         expect(numRendered).toEqual(1);
 
-        camera.position = camera.position.negate();
-        camera.direction = camera.direction.negate();
+        camera.position  = Cartesian3.negate(camera.position, new Cartesian3());
+        camera.direction = Cartesian3.negate(camera.direction, new Cartesian3());
 
         occluder = new Occluder(new BoundingSphere(Cartesian3.ZERO, 536560539.60104907), camera.position);
         frameState.occluder = occluder;
 
-        numRendered = verifyNoDraw();
+        numRendered = render(context, frameState, primitives);
         expect(numRendered).toEqual(0);
 
         frameState.camera = savedCamera;
@@ -300,12 +281,12 @@ defineSuite([
         var polygon = new Polygon();
         polygon.ellipsoid = ellipsoid;
         polygon.granularity = CesiumMath.toRadians(20.0);
-        polygon.setPositions([
-                              ellipsoid.cartographicToCartesian(Cartographic.fromDegrees(-degree, -degree, 0.0)),
+        polygon.positions = [ellipsoid.cartographicToCartesian(Cartographic.fromDegrees(-degree, -degree, 0.0)),
                               ellipsoid.cartographicToCartesian(Cartographic.fromDegrees( degree, -degree, 0.0)),
                               ellipsoid.cartographicToCartesian(Cartographic.fromDegrees( degree,  degree, 0.0)),
-                              ellipsoid.cartographicToCartesian(Cartographic.fromDegrees(-degree,  degree, 0.0))
-                             ]);
+                              ellipsoid.cartographicToCartesian(Cartographic.fromDegrees(-degree,  degree, 0.0))];
+        polygon.asynchronous = false;
+        polygon.material.translucent = false;
         return polygon;
     }
 
@@ -384,16 +365,24 @@ defineSuite([
     });
 
     function createBillboard() {
-        var atlas = context.createTextureAtlas({images : [greenImage], borderWidthInPixels : 1, initialSize : new Cartesian2(3, 3)});
+        var mockScene = {
+            context : context
+        };
+        var atlas = new TextureAtlas({
+            scene : mockScene,
+            images : [greenImage],
+            borderWidthInPixels : 1,
+            initialSize : new Cartesian2(3, 3)
+        });
 
         // ANGLE Workaround
-        atlas.getTexture().setSampler(context.createSampler({
+        atlas.texture.sampler = context.createSampler({
             minificationFilter : TextureMinificationFilter.NEAREST,
             magnificationFilter : TextureMagnificationFilter.NEAREST
-        }));
+        });
 
         var billboards = new BillboardCollection();
-        billboards.setTextureAtlas(atlas);
+        billboards.textureAtlas = atlas;
         billboards.add({
             position : Ellipsoid.WGS84.cartographicToCartesian(new Cartographic.fromDegrees(-75.10, 39.57)),
             imageIndex : 0
@@ -423,11 +412,17 @@ defineSuite([
     });
 
     function createPolylines() {
+        var material = Material.fromType('Color');
+        material.translucent = false;
+
         var polylines = new PolylineCollection();
-        polylines.add({positions:Ellipsoid.WGS84.cartographicArrayToCartesianArray([
-            new Cartographic.fromDegrees(-75.10, 39.57),
-            new Cartographic.fromDegrees(-80.12, 25.46)
-        ])});
+        polylines.add({
+            positions : Ellipsoid.WGS84.cartographicArrayToCartesianArray([
+                new Cartographic.fromDegrees(-75.10, 39.57),
+                new Cartographic.fromDegrees(-80.12, 25.46)
+            ]),
+            material : material
+        });
         return polylines;
     }
 

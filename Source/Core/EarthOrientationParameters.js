@@ -1,29 +1,30 @@
 /*global define*/
 define([
+        '../ThirdParty/when',
         './binarySearch',
         './defaultValue',
-        './freezeObject',
-        './loadJson',
+        './defined',
         './EarthOrientationParametersSample',
+        './freezeObject',
         './JulianDate',
         './LeapSecond',
+        './loadJson',
         './RuntimeError',
         './TimeConstants',
-        './TimeStandard',
-        '../ThirdParty/when'
-    ],
-    function(
+        './TimeStandard'
+    ], function(
+        when,
         binarySearch,
         defaultValue,
-        freezeObject,
-        loadJson,
+        defined,
         EarthOrientationParametersSample,
+        freezeObject,
         JulianDate,
         LeapSecond,
+        loadJson,
         RuntimeError,
         TimeConstants,
-        TimeStandard,
-        when) {
+        TimeStandard) {
     "use strict";
 
     /**
@@ -35,14 +36,15 @@ define([
      * @alias EarthOrientationParameters
      * @constructor
      *
-     * @param {String} [description.url] The URL from which to obtain EOP data.  If neither this
-     *                 parameter nor description.data is specified, all EOP values are assumed
-     *                 to be 0.0.  If description.data is specified, this parameter is
+     * @param {Object} [options] Object with the following properties:
+     * @param {String} [options.url] The URL from which to obtain EOP data.  If neither this
+     *                 parameter nor options.data is specified, all EOP values are assumed
+     *                 to be 0.0.  If options.data is specified, this parameter is
      *                 ignored.
-     * @param {Object} [description.data] The actual EOP data.  If neither this
-     *                 parameter nor description.data is specified, all EOP values are assumed
+     * @param {Object} [options.data] The actual EOP data.  If neither this
+     *                 parameter nor options.data is specified, all EOP values are assumed
      *                 to be 0.0.
-     * @param {Boolean} [description.addNewLeapSeconds=true] True if leap seconds that
+     * @param {Boolean} [options.addNewLeapSeconds=true] True if leap seconds that
      *                  are specified in the EOP data but not in {@link LeapSecond#getLeapSeconds}
      *                  should be added to {@link LeapSecond#getLeapSeconds}.  False if
      *                  new leap seconds should be handled correctly in the context
@@ -61,11 +63,11 @@ define([
      *
      * @example
      * // Loading the EOP data
-     * var eop = new EarthOrientationParameters({ url : 'Data/EOP.json' });
-     * Transforms.earthOrientationParameters = eop;
+     * var eop = new Cesium.EarthOrientationParameters({ url : 'Data/EOP.json' });
+     * Cesium.Transforms.earthOrientationParameters = eop;
      */
-    var EarthOrientationParameters = function EarthOrientationParameters(description) {
-        description = defaultValue(description, defaultValue.EMPTY_OBJECT);
+    var EarthOrientationParameters = function EarthOrientationParameters(options) {
+        options = defaultValue(options, defaultValue.EMPTY_OBJECT);
 
         this._dates = undefined;
         this._samples = undefined;
@@ -84,18 +86,18 @@ define([
         this._downloadPromise = undefined;
         this._dataError = undefined;
 
-        this._addNewLeapSeconds = defaultValue(description.addNewLeapSeconds, true);
+        this._addNewLeapSeconds = defaultValue(options.addNewLeapSeconds, true);
 
-        if (typeof description.data !== 'undefined') {
+        if (defined(options.data)) {
             // Use supplied EOP data.
-            onDataReady(this, description.data);
-        } else if (typeof description.url !== 'undefined') {
+            onDataReady(this, options.data);
+        } else if (defined(options.url)) {
             // Download EOP data.
             var that = this;
-            this._downloadPromise = when(loadJson(description.url), function(eopData) {
+            this._downloadPromise = when(loadJson(options.url), function(eopData) {
                 onDataReady(that, eopData);
             }, function() {
-                that._dataError = 'An error occurred while retrieving the EOP data from the URL ' + description.url + '.';
+                that._dataError = 'An error occurred while retrieving the EOP data from the URL ' + options.url + '.';
             });
         } else {
             // Use all zeros for EOP data.
@@ -114,7 +116,7 @@ define([
                 return when();
             },
             compute : function(date, result) {
-                if (typeof result === 'undefined') {
+                if (!defined(result)) {
                     result = new EarthOrientationParametersSample(0.0, 0.0, 0.0, 0.0, 0.0);
                 } else {
                     result.xPoleWander = 0.0;
@@ -131,8 +133,6 @@ define([
      * Gets a promise that, when resolved, indicates that the EOP data has been loaded and is
      * ready to use.
      *
-     * @memberof EarthOrientationParameters
-     *
      * @returns {Promise} The promise.
      *
      * @see when
@@ -144,8 +144,6 @@ define([
     /**
      * Computes the Earth Orientation Parameters (EOP) for a given date by interpolating.
      * If the EOP data has not yet been download, this method returns undefined.
-     *
-     * @memberof EarthOrientationParameters
      *
      * @param {JulianDate} date The date for each to evaluate the EOP.
      * @param {EarthOrientationParametersSample} [result] The instance to which to copy the result.
@@ -160,15 +158,15 @@ define([
      */
     EarthOrientationParameters.prototype.compute = function(date, result) {
         // We cannot compute until the samples are available.
-        if (typeof this._samples === 'undefined') {
-            if (typeof this._dataError !== 'undefined') {
+        if (!defined(this._samples)) {
+            if (defined(this._dataError)) {
                 throw new RuntimeError(this._dataError);
             }
 
             return undefined;
         }
 
-        if (typeof result === 'undefined') {
+        if (!defined(result)) {
             result = new EarthOrientationParametersSample(0.0, 0.0, 0.0, 0.0, 0.0);
         }
 
@@ -186,12 +184,12 @@ define([
 
         var before = 0;
         var after = 0;
-        if (typeof lastIndex !== 'undefined') {
+        if (defined(lastIndex)) {
             var previousIndexDate = dates[lastIndex];
             var nextIndexDate = dates[lastIndex + 1];
-            var isAfterPrevious = previousIndexDate.lessThanOrEquals(date);
-            var isAfterLastSample = typeof nextIndexDate === 'undefined';
-            var isBeforeNext = isAfterLastSample || nextIndexDate.greaterThanOrEquals(date);
+            var isAfterPrevious = JulianDate.lessThanOrEquals(previousIndexDate, date);
+            var isAfterLastSample = !defined(nextIndexDate);
+            var isBeforeNext = isAfterLastSample || JulianDate.greaterThanOrEquals(nextIndexDate, date);
 
             if (isAfterPrevious && isBeforeNext) {
                 before = lastIndex;
@@ -237,12 +235,12 @@ define([
     }
 
     function onDataReady(eop, eopData) {
-        if (typeof eopData.columnNames === 'undefined') {
+        if (!defined(eopData.columnNames)) {
             eop._dataError = 'Error in loaded EOP data: The columnNames property is required.';
             return;
         }
 
-        if (typeof eopData.samples === 'undefined') {
+        if (!defined(eopData.samples)) {
             eop._dataError = 'Error in loaded EOP data: The samples property is required.';
             return;
         }
@@ -287,10 +285,10 @@ define([
             dates.push(date);
 
             if (addNewLeapSeconds) {
-                if (taiMinusUtc !== lastTaiMinusUtc && typeof lastTaiMinusUtc !== 'undefined') {
+                if (taiMinusUtc !== lastTaiMinusUtc && defined(lastTaiMinusUtc)) {
                     // We crossed a leap second boundary, so add the leap second
                     // if it does not already exist.
-                    var leapSeconds = LeapSecond.getLeapSeconds();
+                    var leapSeconds = JulianDate.leapSeconds;
                     var leapSecondIndex = binarySearch(leapSeconds, date, compareLeapSecondDates);
                     if (leapSecondIndex < 0) {
                         var leapSecond = new LeapSecond(date, taiMinusUtc);
@@ -340,7 +338,7 @@ define([
             return result;
         }
 
-        var factor = beforeDate.getSecondsDifference(date) / beforeDate.getSecondsDifference(afterDate);
+        var factor = JulianDate.getSecondsDifference(date, beforeDate) / JulianDate.getSecondsDifference(afterDate, beforeDate);
 
         var startBefore = before * columnCount;
         var startAfter = after * columnCount;

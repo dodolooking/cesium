@@ -1,5 +1,5 @@
 /*global define*/
-define(['./Enumeration'], function(Enumeration) {
+define(function() {
     "use strict";
 
     /**
@@ -11,138 +11,138 @@ define(['./Enumeration'], function(Enumeration) {
         /**
          * Represents a mouse left button down event.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        LEFT_DOWN : new Enumeration(0, 'LEFT_DOWN'),
+        LEFT_DOWN : 0,
 
         /**
          * Represents a mouse left button up event.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        LEFT_UP : new Enumeration(1, 'LEFT_UP'),
+        LEFT_UP : 1,
 
         /**
          * Represents a mouse left click event.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        LEFT_CLICK : new Enumeration(2, 'LEFT_CLICK'),
+        LEFT_CLICK : 2,
 
         /**
          * Represents a mouse left double click event.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        LEFT_DOUBLE_CLICK : new Enumeration(3, 'LEFT_DOUBLE_CLICK'),
+        LEFT_DOUBLE_CLICK : 3,
 
         /**
          * Represents a mouse left button down event.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        RIGHT_DOWN : new Enumeration(5, 'RIGHT_DOWN'),
+        RIGHT_DOWN : 5,
 
         /**
          * Represents a mouse right button up event.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        RIGHT_UP : new Enumeration(6, 'RIGHT_UP'),
+        RIGHT_UP : 6,
 
         /**
          * Represents a mouse right click event.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        RIGHT_CLICK : new Enumeration(7, 'RIGHT_CLICK'),
+        RIGHT_CLICK : 7,
 
         /**
          * Represents a mouse right double click event.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        RIGHT_DOUBLE_CLICK : new Enumeration(8, 'RIGHT_DOUBLE_CLICK'),
+        RIGHT_DOUBLE_CLICK : 8,
 
         /**
          * Represents a mouse middle button down event.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        MIDDLE_DOWN : new Enumeration(10, 'MIDDLE_DOWN'),
+        MIDDLE_DOWN : 10,
 
         /**
          * Represents a mouse middle button up event.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        MIDDLE_UP : new Enumeration(11, 'MIDDLE_UP'),
+        MIDDLE_UP : 11,
 
         /**
          * Represents a mouse middle click event.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        MIDDLE_CLICK : new Enumeration(12, 'MIDDLE_CLICK'),
+        MIDDLE_CLICK : 12,
 
         /**
          * Represents a mouse middle double click event.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        MIDDLE_DOUBLE_CLICK : new Enumeration(13, 'MIDDLE_DOUBLE_CLICK'),
+        MIDDLE_DOUBLE_CLICK : 13,
 
         /**
          * Represents a mouse move event.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        MOUSE_MOVE : new Enumeration(15, 'MOUSE_MOVE'),
+        MOUSE_MOVE : 15,
 
         /**
          * Represents a mouse wheel event.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        WHEEL : new Enumeration(16, 'WHEEL'),
+        WHEEL : 16,
 
         /**
          * Represents the start of a two-finger event on a touch surface.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        PINCH_START : new Enumeration(17, 'PINCH_START'),
+        PINCH_START : 17,
 
         /**
          * Represents the end of a two-finger event on a touch surface.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        PINCH_END : new Enumeration(18, 'PINCH_END'),
+        PINCH_END : 18,
 
         /**
          * Represents a change of a two-finger event on a touch surface.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        PINCH_MOVE : new Enumeration(19, 'PINCH_MOVE')
+        PINCH_MOVE : 19
     };
 
     return ScreenSpaceEventType;

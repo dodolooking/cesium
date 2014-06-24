@@ -1,48 +1,42 @@
 /*global defineSuite*/
 defineSuite([
-         'Scene/PolylineCollection',
-         'Scene/Polyline',
-         'Specs/createContext',
-         'Specs/destroyContext',
-         'Specs/createCamera',
-         'Specs/createFrameState',
-         'Specs/frameState',
-         'Specs/pick',
-         'Specs/render',
-         'Core/BoundingRectangle',
-         'Core/BoundingSphere',
-         'Core/Cartesian3',
-         'Core/Cartographic',
-         'Core/Color',
-         'Core/Matrix4',
-         'Core/Math',
-         'Core/JulianDate',
-         'Renderer/BufferUsage',
-         'Renderer/ClearCommand',
-         'Scene/SceneMode',
-         'Scene/Material'
-     ], function(
-         PolylineCollection,
-         Polyline,
-         createContext,
-         destroyContext,
-         createCamera,
-         createFrameState,
-         frameState,
-         pick,
-         render,
-         BoundingRectangle,
-         BoundingSphere,
-         Cartesian3,
-         Cartographic,
-         Color,
-         Matrix4,
-         CesiumMath,
-         JulianDate,
-         BufferUsage,
-         ClearCommand,
-         SceneMode,
-         Material) {
+        'Scene/PolylineCollection',
+        'Core/BoundingSphere',
+        'Core/Cartesian3',
+        'Core/Cartographic',
+        'Core/Color',
+        'Core/Math',
+        'Renderer/ClearCommand',
+        'Scene/Material',
+        'Scene/SceneMode',
+        'Specs/createCamera',
+        'Specs/createContext',
+        'Specs/createFrameState',
+        'Specs/createScene',
+        'Specs/destroyContext',
+        'Specs/destroyScene',
+        'Specs/frameState',
+        'Specs/pick',
+        'Specs/render'
+    ], function(
+        PolylineCollection,
+        BoundingSphere,
+        Cartesian3,
+        Cartographic,
+        Color,
+        CesiumMath,
+        ClearCommand,
+        Material,
+        SceneMode,
+        createCamera,
+        createContext,
+        createFrameState,
+        createScene,
+        destroyContext,
+        destroyScene,
+        frameState,
+        pick,
+        render) {
     "use strict";
     /*global it,expect,beforeEach,afterEach,beforeAll,afterAll*/
 
@@ -61,66 +55,99 @@ defineSuite([
     beforeEach(function() {
         polylines = new PolylineCollection();
 
-        us = context.getUniformState();
-        us.update(createFrameState(createCamera(context)));
+        us = context.uniformState;
+        us.update(context, createFrameState(createCamera()));
     });
 
     afterEach(function() {
-        us = null;
+        if (!polylines.isDestroyed()) {
+            polylines.destroy();
+        }
+        us = undefined;
     });
 
     it('default constructs a polyline', function() {
         var p = polylines.add();
-        expect(p.getShow()).toEqual(true);
-        expect(p.getPositions().length).toEqual(0);
-        expect(p.getWidth()).toEqual(1.0);
-        expect(p.getMaterial().uniforms.color).toEqual(new Color(1.0, 1.0, 1.0, 1.0));
+        expect(p.show).toEqual(true);
+        expect(p.positions.length).toEqual(0);
+        expect(p.width).toEqual(1.0);
+        expect(p.material.uniforms.color).toEqual(new Color(1.0, 1.0, 1.0, 1.0));
+        expect(p.id).not.toBeDefined();
+        expect(p.loop).toEqual(false);
     });
 
     it('explicitly constructs a polyline', function() {
-        var material = Material.fromType(context, Material.PolylineOutlineType);
+        var material = Material.fromType(Material.PolylineOutlineType);
         var p = polylines.add({
             show : false,
-            positions : [new Cartesian3(1.0, 2.0, 3.0), new Cartesian3(4.0, 5.0, 6.0)],
+            positions : [new Cartesian3(1.0, 2.0, 3.0), new Cartesian3(4.0, 5.0, 6.0), new Cartesian3(7.0, 8.0, 9.0)],
+            loop : true,
             width : 2,
-            material : material
+            material : material,
+            id : 'id'
         });
 
-        expect(p.getShow()).toEqual(false);
-        expect(p.getPositions()[0]).toEqual(new Cartesian3(1.0, 2.0, 3.0));
-        expect(p.getPositions()[1]).toEqual(new Cartesian3(4.0, 5.0, 6.0));
-        expect(p.getWidth()).toEqual(2);
-        expect(p.getMaterial().uniforms.color).toEqual(material.uniforms.color);
-        expect(p.getMaterial().uniforms.outlineColor).toEqual(material.uniforms.outlineColor);
-        expect(p.getMaterial().uniforms.outlineWidth).toEqual(material.uniforms.outlineWidth);
+        expect(p.show).toEqual(false);
+        expect(p.positions[0]).toEqual(new Cartesian3(1.0, 2.0, 3.0));
+        expect(p.positions[1]).toEqual(new Cartesian3(4.0, 5.0, 6.0));
+        expect(p.positions[2]).toEqual(new Cartesian3(7.0, 8.0, 9.0));
+        expect(p.positions.length).toEqual(4);
+        expect(p.loop).toEqual(true);
+        expect(p.width).toEqual(2);
+        expect(p.material.uniforms.color).toEqual(material.uniforms.color);
+        expect(p.material.uniforms.outlineColor).toEqual(material.uniforms.outlineColor);
+        expect(p.material.uniforms.outlineWidth).toEqual(material.uniforms.outlineWidth);
+        expect(p.id).toEqual('id');
     });
 
     it('sets polyline properties', function() {
-        var material = Material.fromType(context, Material.PolylineOutlineType);
+        var material = Material.fromType(Material.PolylineOutlineType);
         var p = polylines.add();
-        p.setShow(false);
-        p.setPositions([new Cartesian3(1.0, 2.0, 3.0), new Cartesian3(4.0, 5.0, 6.0)]);
-        p.setWidth(2);
-        p.setMaterial(material);
+        p.show = false;
+        p.positions = [new Cartesian3(1.0, 2.0, 3.0), new Cartesian3(4.0, 5.0, 6.0), new Cartesian3(7.0, 8.0, 9.0)];
+        p.loop = true;
+        p.width = 2;
+        p.material = material;
 
-        expect(p.getShow()).toEqual(false);
-        expect(p.getPositions()[0]).toEqual(new Cartesian3(1.0, 2.0, 3.0));
-        expect(p.getPositions()[1]).toEqual(new Cartesian3(4.0, 5.0, 6.0));
-        expect(p.getWidth()).toEqual(2);
-        expect(p.getMaterial().uniforms.color).toEqual(material.uniforms.color);
-        expect(p.getMaterial().uniforms.outlineColor).toEqual(material.uniforms.outlineColor);
-        expect(p.getMaterial().uniforms.outlineWidth).toEqual(material.uniforms.outlineWidth);
+        expect(p.show).toEqual(false);
+        expect(p.positions[0]).toEqual(new Cartesian3(1.0, 2.0, 3.0));
+        expect(p.positions[1]).toEqual(new Cartesian3(4.0, 5.0, 6.0));
+        expect(p.positions[2]).toEqual(new Cartesian3(7.0, 8.0, 9.0));
+        expect(p.positions.length).toEqual(4);
+        expect(p.loop).toEqual(true);
+        expect(p.width).toEqual(2);
+        expect(p.material.uniforms.color).toEqual(material.uniforms.color);
+        expect(p.material.uniforms.outlineColor).toEqual(material.uniforms.outlineColor);
+        expect(p.material.uniforms.outlineWidth).toEqual(material.uniforms.outlineWidth);
+    });
+
+    it('constructor sets loop only when number of positions is greater than 2', function() {
+        var p = polylines.add({
+            positions : [new Cartesian3(0.0, 1.0, 2.0), new Cartesian3(3.0, 4.0, 5.0)],
+            loop : true
+        });
+
+        expect(p.positions.length).toEqual(2);
+    });
+
+    it('sets loop only when number of positions is greater than 2', function() {
+        var p = polylines.add({
+            positions : [new Cartesian3(0.0, 1.0, 2.0), new Cartesian3(3.0, 4.0, 5.0)]
+        });
+        p.loop = true;
+
+        expect(p.positions.length).toEqual(2);
     });
 
     it('sets removed polyline properties', function() {
         var p = polylines.add();
         polylines.remove(p);
-        p.setShow(false);
-        expect(p.getShow()).toEqual(false);
+        p.show = false;
+        expect(p.show).toEqual(false);
     });
 
     it('has zero polylines when constructed', function() {
-        expect(polylines.getLength()).toEqual(0);
+        expect(polylines.length).toEqual(0);
     });
 
     it('adds a polyline', function() {
@@ -136,7 +163,7 @@ defineSuite([
             }]
         });
 
-        expect(polylines.getLength()).toEqual(1);
+        expect(polylines.length).toEqual(1);
         expect(polylines.get(0) === p).toEqual(true);
     });
 
@@ -164,11 +191,11 @@ defineSuite([
             }]
         });
 
-        expect(polylines.getLength()).toEqual(2);
+        expect(polylines.length).toEqual(2);
 
         expect(polylines.remove(one)).toEqual(true);
 
-        expect(polylines.getLength()).toEqual(1);
+        expect(polylines.length).toEqual(1);
         expect(polylines.get(0) === two).toEqual(true);
     });
 
@@ -196,11 +223,11 @@ defineSuite([
             }]
         });
 
-        expect(polylines.getLength()).toEqual(2);
+        expect(polylines.length).toEqual(2);
 
         expect(polylines.remove(two)).toEqual(true);
 
-        expect(polylines.getLength()).toEqual(1);
+        expect(polylines.length).toEqual(1);
         expect(polylines.get(0) === one).toEqual(true);
     });
 
@@ -216,13 +243,13 @@ defineSuite([
                 z : 4.0
             }]
         });
-        expect(polylines.getLength()).toEqual(1);
+        expect(polylines.length).toEqual(1);
 
         expect(polylines.remove(p)).toEqual(true);
-        expect(polylines.getLength()).toEqual(0);
+        expect(polylines.length).toEqual(0);
 
         expect(polylines.remove(p)).toEqual(false);
-        expect(polylines.getLength()).toEqual(0);
+        expect(polylines.length).toEqual(0);
     });
 
     it('returns false when removing undefined', function() {
@@ -237,10 +264,10 @@ defineSuite([
                 z : 4.0
             }]
         });
-        expect(polylines.getLength()).toEqual(1);
+        expect(polylines.length).toEqual(1);
 
         expect(polylines.remove(undefined)).toEqual(false);
-        expect(polylines.getLength()).toEqual(1);
+        expect(polylines.length).toEqual(1);
     });
 
     it('adds and removes polylines', function() {
@@ -266,7 +293,7 @@ defineSuite([
                 z : 4.0
             }]
         });
-        expect(polylines.getLength()).toEqual(2);
+        expect(polylines.length).toEqual(2);
         expect(polylines.get(0) === one).toEqual(true);
         expect(polylines.get(1) === two).toEqual(true);
 
@@ -282,7 +309,7 @@ defineSuite([
                 z : 4.0
             }]
         });
-        expect(polylines.getLength()).toEqual(2);
+        expect(polylines.length).toEqual(2);
         expect(polylines.get(0) === one).toEqual(true);
         expect(polylines.get(1) === three).toEqual(true);
     });
@@ -310,10 +337,10 @@ defineSuite([
                 z : 4.0
             }]
         });
-        expect(polylines.getLength()).toEqual(2);
+        expect(polylines.length).toEqual(2);
 
         polylines.removeAll();
-        expect(polylines.getLength()).toEqual(0);
+        expect(polylines.length).toEqual(0);
     });
 
     it('can check if it contains a polyline', function() {
@@ -376,7 +403,7 @@ defineSuite([
         expect(context.readPixels()).toNotEqual([0, 0, 0, 0]);
     });
 
-    it('does not crash is polyline has one position', function() {
+    it('does not crash if polyline has one position', function() {
         polylines.add({
             positions : [{
                 x : 1647745.6656519484,
@@ -417,10 +444,10 @@ defineSuite([
         ClearCommand.ALL.execute(context);
         render(context, frameState, polylines);
 
-        //We need to setPositions and render it again
+        //We need to set positions and render it again
         //in order for BufferUsage.STREAM_DRAW to be
         //triggered, which ends up rebuilding vertex arrays.
-        line.setPositions(positions);
+        line.positions = positions;
         render(context, frameState, polylines);
 
         //Now set the second position which results in a line that does not cross the IDL
@@ -429,7 +456,7 @@ defineSuite([
             y : -46499100,
             z : 38870500
         };
-        line.setPositions(positions);
+        line.positions = positions;
 
         //Render the new line.  The fact that the new position no longer crosses the IDL
         //is what triggers the vertex array creation.  If the vertex array were not
@@ -440,7 +467,7 @@ defineSuite([
 
     it('renders 64K vertices of same polyline', function() {
         var positions = [];
-        for ( var i = 0; i < (64 * 1024) / 2; ++i) {
+        for ( var i = 0; i < CesiumMath.SIXTY_FOUR_KILOBYTES / 2; ++i) {
             positions.push({
                 x : 0,
                 y : -1,
@@ -465,7 +492,7 @@ defineSuite([
 
     it('creates two vertex arrays and renders', function() {
         var positions = [];
-        for ( var i = 0; i < (64 * 1024) / 2; ++i) {
+        for ( var i = 0; i < CesiumMath.SIXTY_FOUR_KILOBYTES / 2; ++i) {
             positions.push({
                 x : 0,
                 y : -1,
@@ -490,7 +517,7 @@ defineSuite([
         ClearCommand.ALL.execute(context);
         expect(context.readPixels()).toEqual([0, 0, 0, 0]);
 
-        p1.setShow(false);
+        p1.show = false;
         render(context, frameState, polylines);
         expect(context.readPixels()).toEqual([0, 0, 0, 0]);
 
@@ -508,7 +535,7 @@ defineSuite([
 
     it('renders more than 64K vertices of same polyline', function() {
         var positions = [];
-        for ( var i = 0; i < 64 * 1024; ++i) {
+        for ( var i = 0; i < CesiumMath.SIXTY_FOUR_KILOBYTES; ++i) {
             positions.push({
                 x : 0,
                 y : -1,
@@ -576,7 +603,7 @@ defineSuite([
         expect(context.readPixels()).toNotEqual([0, 0, 0, 0]);
     });
 
-    it('renders an updated polyline with no positions using setPositions', function() {
+    it('renders an updated polyline with no positions using set positions', function() {
         var positions = [];
         for ( var i = 0; i < 100; ++i) {
             positions.push({
@@ -611,7 +638,7 @@ defineSuite([
         expect(context.readPixels()).toNotEqual([0, 0, 0, 0]);
 
         //recreates vertex array because buffer usage changed
-        p2.setPositions([]);
+        p2.positions = [];
 
         ClearCommand.ALL.execute(context);
         expect(context.readPixels()).toEqual([0, 0, 0, 0]);
@@ -620,7 +647,7 @@ defineSuite([
         expect(context.readPixels()).toNotEqual([0, 0, 0, 0]);
 
         //should call PolylineCollection.writePositionsUpdate
-        p2.setPositions([]);
+        p2.positions = [];
 
         ClearCommand.ALL.execute(context);
         expect(context.readPixels()).toEqual([0, 0, 0, 0]);
@@ -629,7 +656,7 @@ defineSuite([
         expect(context.readPixels()).toNotEqual([0, 0, 0, 0]);
     });
 
-    it('renders an updated polyline with no positions using setShow', function() {
+    it('renders an updated polyline with no positions using show', function() {
         var positions = [];
         for ( var i = 0; i < 100; ++i) {
             positions.push({
@@ -664,7 +691,7 @@ defineSuite([
         expect(context.readPixels()).toNotEqual([0, 0, 0, 0]);
 
         //recreates vertex array because buffer usage changed
-        p2.setShow(false);
+        p2.show = false;
 
         ClearCommand.ALL.execute(context);
         expect(context.readPixels()).toEqual([0, 0, 0, 0]);
@@ -673,7 +700,7 @@ defineSuite([
         expect(context.readPixels()).toNotEqual([0, 0, 0, 0]);
 
         //should call PolylineCollection.writeMiscUpdate
-        p2.setShow(true);
+        p2.show = true;
 
         ClearCommand.ALL.execute(context);
         expect(context.readPixels()).toEqual([0, 0, 0, 0]);
@@ -683,7 +710,7 @@ defineSuite([
 
     });
 
-    it('renders an updated polyline with no positions using setMaterial', function() {
+    it('renders an updated polyline with no positions using material', function() {
         var positions = [];
         for ( var i = 0; i < 100; ++i) {
             positions.push({
@@ -718,7 +745,7 @@ defineSuite([
         expect(context.readPixels()).toNotEqual([0, 0, 0, 0]);
 
         //recreates vertex array because buffer usage changed
-        p2.setMaterial(Material.fromType(context, Material.PolylineOutlineType));
+        p2.material = Material.fromType(Material.PolylineOutlineType);
 
         ClearCommand.ALL.execute(context);
         expect(context.readPixels()).toEqual([0, 0, 0, 0]);
@@ -752,7 +779,7 @@ defineSuite([
         expect(context.readPixels()).toNotEqual([0, 0, 0, 0]);
 
         // changes buffer usage, recreates vertex arrays
-        p.setPositions(positions);
+        p.positions = positions;
         render(context, frameState, polylines);
 
         ClearCommand.ALL.execute(context);
@@ -767,7 +794,7 @@ defineSuite([
 
     it('renders more than 64K vertices of different polylines', function() {
         var positions = [];
-        for ( var i = 0; i < 64 * 1024; ++i) {
+        for ( var i = 0; i < CesiumMath.SIXTY_FOUR_KILOBYTES; ++i) {
             positions.push({
                 x : -1,
                 y : -1,
@@ -805,60 +832,28 @@ defineSuite([
         expect(context.readPixels()).toNotEqual([0, 0, 0, 0]);
     });
 
-    it('renders more than 64K vertices of different polylines of different widths', function() {
-        var positions = [];
-        for ( var i = 0; i < 64 * 1024 - 2; ++i) {
-            positions.push({
-                x : -1,
-                y : -1,
-                z : 0
-            });
-            positions.push({
-                x : -1,
-                y : 1,
-                z : 0
-            });
-        }
-
-        polylines.add({
-            positions : positions
+    it('renders bounding volume with debugShowBoundingVolume', function() {
+        var scene = createScene();
+        var p = scene.primitives.add(new PolylineCollection({
+            debugShowBoundingVolume : true
+        }));
+        var material = Material.fromType('Color');
+        material.uniforms.color = new Color(1.0, 1.0, 1.0, 0.0);
+        p.add({
+            positions : [Cartesian3.UNIT_Z, Cartesian3.negate(Cartesian3.UNIT_Z, new Cartesian3())],
+            material : material
         });
 
-        polylines.add({
-            positions:positions,
-            width:2
-        });
-        positions = [];
+        var camera = scene.camera;
+        camera.position = new Cartesian3(1.02, 0.0, 0.0);
+        camera.direction = Cartesian3.negate(Cartesian3.UNIT_X, new Cartesian3());
+        camera.up = Cartesian3.clone(Cartesian3.UNIT_Z);
 
-        positions.push({
-            x : 0,
-            y : -1,
-            z : 0
-        });
-        positions.push({
-            x : 0,
-            y : 1,
-            z : 0
-        });
-        positions.push({
-            x : 0,
-            y : -1,
-            z : 0
-        });
-        positions.push({
-            x : 0,
-            y : 1,
-            z : 0
-        });
-        polylines.add({
-           positions:positions,
-           width:5
-        });
-        ClearCommand.ALL.execute(context);
-        expect(context.readPixels()).toEqual([0, 0, 0, 0]);
+        scene.initializeFrame();
+        scene.render();
+        expect(scene.context.readPixels()).toNotEqual([0, 0, 0, 0]);
 
-        render(context, frameState, polylines);
-        expect(context.readPixels()).toNotEqual([0, 0, 0, 0]);
+        destroyScene(scene);
     });
 
     it('does not render', function() {
@@ -879,7 +874,7 @@ defineSuite([
 
         render(context, frameState, polylines);
         expect(context.readPixels()).toNotEqual([0, 0, 0, 0]);
-        p.setShow(false);
+        p.show = false;
 
         ClearCommand.ALL.execute(context);
         expect(context.readPixels()).toEqual([0, 0, 0, 0]);
@@ -1097,7 +1092,7 @@ defineSuite([
         ClearCommand.ALL.execute(context);
         expect(context.readPixels()).toEqual([0, 0, 0, 0]);
 
-        p.setPositions([{
+        p.positions = [{
             x : -2.0,
             y : -1.0,
             z : 0.0
@@ -1105,11 +1100,11 @@ defineSuite([
             x : -2.0,
             y : 1.0,
             z : 0.0
-        }]); // Behind viewer
+        }]; // Behind viewer
         render(context, frameState, polylines);
         expect(context.readPixels()).toEqual([0, 0, 0, 0]);
 
-        p.setPositions([{
+        p.positions = [{
             x : 0.0,
             y : -1.0,
             z : 0.0
@@ -1117,7 +1112,7 @@ defineSuite([
             x : 0.0,
             y : 1.0,
             z : 0.0
-        }]); // Back in front of viewer
+        }]; // Back in front of viewer
         render(context, frameState, polylines);
         expect(context.readPixels()).toNotEqual([0, 0, 0, 0]);
     });
@@ -1172,14 +1167,14 @@ defineSuite([
         ClearCommand.ALL.execute(context);
         expect(context.readPixels()).toEqual([0, 0, 0, 0]);
 
-        p.setShow(false);
+        p.show = false;
         render(context, frameState, polylines);
         expect(context.readPixels()).toEqual([0, 0, 0, 0]);
 
         ClearCommand.ALL.execute(context);
         expect(context.readPixels()).toEqual([0, 0, 0, 0]);
 
-        p.setShow(true);
+        p.show = true;
         render(context, frameState, polylines);
         expect(context.readPixels()).toNotEqual([0, 0, 0, 0]);
 
@@ -1208,7 +1203,7 @@ defineSuite([
         ClearCommand.ALL.execute(context);
         expect(context.readPixels()).toEqual([0, 0, 0, 0]);
 
-        p.setShow(false);
+        p.show = false;
         render(context, frameState, polylines);
         expect(context.readPixels()).toEqual([0, 0, 0, 0]);
 
@@ -1216,7 +1211,7 @@ defineSuite([
         ClearCommand.ALL.execute(context);
         expect(context.readPixels()).toEqual([0, 0, 0, 0]);
 
-        p.setShow(true);
+        p.show = true;
         render(context, frameState, polylines);
         expect(context.readPixels()).toNotEqual([0, 0, 0, 0]);
     });
@@ -1304,28 +1299,27 @@ defineSuite([
         render(context, frameState, polylines);
         expect(context.readPixels()).toNotEqual([0, 0, 0, 0]);
 
-        p2.setMaterial(Material.fromType(context, Material.PolylineOutlineType));
+        p2.material = Material.fromType(Material.PolylineOutlineType);
         render(context, frameState, polylines);
         expect(context.readPixels()).toNotEqual([0, 0, 0, 0]);
 
-        p2.setMaterial(Material.fromType(context, Material.ColorType));
+        p2.material = Material.fromType(Material.ColorType);
         render(context, frameState, polylines);
         expect(context.readPixels()).toNotEqual([0, 0, 0, 0]);
     });
 
     it('does not render with width 0.0', function() {
-        var positions = [
-        {
-            x : -1.0,
-            y : 1.0,
-            z : 0.0
-        },{
-            x : -1.0,
-            y : -1.0,
-            z : 0.0
-        }];
         var line = polylines.add({
-            positions : positions
+            positions : [{
+                x : 0.0,
+                y : -1.0,
+                z : 0.0
+            }, {
+                x : 0.0,
+                y : 1.0,
+                z : 0.0
+            }],
+            width : 7
         });
 
         ClearCommand.ALL.execute(context);
@@ -1337,7 +1331,7 @@ defineSuite([
         ClearCommand.ALL.execute(context);
         expect(context.readPixels()).toEqual([0, 0, 0, 0]);
 
-        line.setWidth(0.0);
+        line.width = 0.0;
         render(context, frameState, polylines);
         expect(context.readPixels()).toEqual([0, 0, 0, 0]);
     });
@@ -1365,7 +1359,7 @@ defineSuite([
         render(context, frameState, polylines);
         expect(context.readPixels()).toNotEqual([0, 0, 0, 0]);
 
-        p.setPositions(positions);
+        p.positions = positions;
 
         render(context, frameState, polylines);
         expect(context.readPixels()).toNotEqual([0, 0, 0, 0]);
@@ -1376,7 +1370,7 @@ defineSuite([
                 z : 0.0
             });
 
-        p.setPositions(positions);
+        p.positions = positions;
         render(context, frameState, polylines);
         expect(context.readPixels()).toNotEqual([0, 0, 0, 0]);
     });
@@ -1410,15 +1404,15 @@ defineSuite([
         render(context, frameState, polylines);
         expect(context.readPixels()).toNotEqual([0, 0, 0, 0]);
 
-        p1.setWidth(2);
+        p1.width = 2;
         render(context, frameState, polylines);
         expect(context.readPixels()).toNotEqual([0, 0, 0, 0]);
 
-        p2.setWidth(2);
+        p2.width = 2;
         render(context, frameState, polylines);
         expect(context.readPixels()).toNotEqual([0, 0, 0, 0]);
 
-        p1.setWidth(1);
+        p1.width = 1;
         render(context, frameState, polylines);
         expect(context.readPixels()).toNotEqual([0, 0, 0, 0]);
 
@@ -1434,11 +1428,38 @@ defineSuite([
                 x : 0.0,
                 y : 1.0,
                 z : 0.0
-            }]
+            }],
+            id : 'id'
         });
 
         var pickedObject = pick(context, frameState, polylines, 0, 0);
-        expect(pickedObject).toEqual(p);
+        expect(pickedObject.primitive).toEqual(p);
+        expect(pickedObject.id).toEqual('id');
+    });
+
+    it('can change pick id', function() {
+        var p = polylines.add({
+            positions : [{
+                x : 0.0,
+                y : -1.0,
+                z : 0.0
+            }, {
+                x : 0.0,
+                y : 1.0,
+                z : 0.0
+            }],
+            id : 'id'
+        });
+
+        var pickedObject = pick(context, frameState, polylines, 0, 0);
+        expect(pickedObject.primitive).toEqual(p);
+        expect(pickedObject.id).toEqual('id');
+
+        p.id = 'id2';
+
+        pickedObject = pick(context, frameState, polylines, 0, 0);
+        expect(pickedObject.primitive).toEqual(p);
+        expect(pickedObject.id).toEqual('id2');
     });
 
     it('is not picked (show === false)', function() {
@@ -1471,7 +1492,7 @@ defineSuite([
                 z : 0.0
             }]
         });
-        p.getMaterial().uniforms.color.alpha = 0.0;
+        p.material.uniforms.color.alpha = 0.0;
 
         var pickedObject = pick(context, frameState, polylines, 0, 0);
         expect(pickedObject).toBeUndefined();
@@ -1485,7 +1506,7 @@ defineSuite([
     it('throws when accessing without an index', function() {
         expect(function() {
             polylines.get();
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('computes bounding sphere in 3D', function() {
@@ -1525,17 +1546,17 @@ defineSuite([
 
         var commandList = [];
         polylines.update(context, frameState, commandList);
-        var boundingVolume = commandList[0].colorList[0].boundingVolume;
+        var boundingVolume = commandList[0].boundingVolume;
 
-        expect(one._boundingVolume).toEqual(BoundingSphere.fromPoints(one.getPositions()));
-        expect(two._boundingVolume).toEqual(BoundingSphere.fromPoints(two.getPositions()));
-        expect(three._boundingVolume).toEqual(BoundingSphere.fromPoints(three.getPositions()));
-        expect(boundingVolume).toEqual(one._boundingVolume.union(two._boundingVolume).union(three._boundingVolume));
+        expect(one._boundingVolume).toEqual(BoundingSphere.fromPoints(one.positions));
+        expect(two._boundingVolume).toEqual(BoundingSphere.fromPoints(two.positions));
+        expect(three._boundingVolume).toEqual(BoundingSphere.fromPoints(three.positions));
+        expect(boundingVolume).toEqual(BoundingSphere.union(BoundingSphere.union(one._boundingVolume, two._boundingVolume), three._boundingVolume));
     });
 
     function test2DBoundingSphere(testMode) {
-        var projection = frameState.scene2D.projection;
-        var ellipsoid = projection.getEllipsoid();
+        var projection = frameState.mapProjection;
+        var ellipsoid = projection.ellipsoid;
 
         var one = polylines.add({
             positions : [
@@ -1554,10 +1575,10 @@ defineSuite([
         frameState.mode = testMode;
         var commandList = [];
         polylines.update(context, frameState, commandList);
-        var boundingVolume = commandList[0].colorList[0].boundingVolume;
+        var boundingVolume = commandList[0].boundingVolume;
         frameState.mode = mode;
 
-        var positions = one.getPositions();
+        var positions = one.positions;
         var projectedPositions = [];
         var i;
         for (i = 0; i < positions.length; ++i) {
@@ -1568,7 +1589,7 @@ defineSuite([
         expect(one._boundingVolume2D.center).toEqualEpsilon(bs.center, CesiumMath.EPSILON8);
         expect(one._boundingVolume2D.radius).toEqualEpsilon(bs.radius, CesiumMath.EPSILON12);
 
-        positions = two.getPositions();
+        positions = two.positions;
         projectedPositions = [];
         for (i = 0; i < positions.length; ++i) {
             projectedPositions.push(projection.project(ellipsoid.cartesianToCartographic(positions[i])));
@@ -1578,7 +1599,9 @@ defineSuite([
         expect(two._boundingVolume2D.center).toEqualEpsilon(bs.center, CesiumMath.EPSILON8);
         expect(two._boundingVolume2D.radius).toEqualEpsilon(bs.radius, CesiumMath.EPSILON12);
 
-        expect(boundingVolume).toEqual(one._boundingVolume2D.union(two._boundingVolume2D));
+        var expected = BoundingSphere.union(one._boundingVolume2D, two._boundingVolume2D);
+        expect(boundingVolume.center).toEqualEpsilon(expected.center, CesiumMath.EPSILON8);
+        expect(boundingVolume.radius).toEqualEpsilon(expected.radius, CesiumMath.EPSILON8);
     }
 
     it('computes bounding sphere in Columbus view', function() {
@@ -1589,9 +1612,43 @@ defineSuite([
         test2DBoundingSphere(SceneMode.SCENE2D);
     });
 
+    it('computes optimized bounding volumes per material', function() {
+        var one = polylines.add({
+            positions : [{
+                x : 1.0,
+                y : 2.0,
+                z : 3.0
+            },{
+                x : 2.0,
+                y : 3.0,
+                z : 4.0
+            }]
+        });
+        one.material.uniforms.color = new Color(1.0, 0.0, 0.0, 1.0);
+
+        var two = polylines.add({
+            positions : [{
+                x : 4.0,
+                y : 5.0,
+                z : 6.0
+            },{
+                x : 2.0,
+                y : 3.0,
+                z : 4.0
+            }]
+        });
+        two.material.uniforms.color = new Color(0.0, 1.0, 0.0, 1.0);
+
+        var commandList = [];
+        polylines.update(context, frameState, commandList);
+
+        expect(commandList[0].boundingVolume).toEqual(one._boundingVolume);
+        expect(commandList[1].boundingVolume).toEqual(two._boundingVolume);
+    });
+
     it('isDestroyed', function() {
         expect(polylines.isDestroyed()).toEqual(false);
         polylines.destroy();
         expect(polylines.isDestroyed()).toEqual(true);
     });
-});
+}, 'WebGL');

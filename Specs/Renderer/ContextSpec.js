@@ -1,16 +1,20 @@
 /*global defineSuite*/
 defineSuite([
-         'Renderer/Context',
-         'Core/Color',
-         'Specs/createContext',
-         'Specs/destroyContext',
-         'Specs/renderFragment'
-     ], function(
-         Context,
-         Color,
-         createContext,
-         destroyContext,
-         renderFragment) {
+        'Renderer/Context',
+        'Core/Color',
+        'Core/IndexDatatype',
+        'Renderer/BufferUsage',
+        'Specs/createContext',
+        'Specs/destroyContext',
+        'Specs/renderFragment'
+    ], function(
+        Context,
+        Color,
+        IndexDatatype,
+        BufferUsage,
+        createContext,
+        destroyContext,
+        renderFragment) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
 
@@ -26,117 +30,127 @@ defineSuite([
 
     it('has a unique ID', function() {
         var c = createContext();
-        expect(c.getId()).toBeDefined();
-        expect(c.getId()).not.toEqual(context.getId());
+        expect(c.id).toBeDefined();
+        expect(c.id).not.toEqual(context.id);
         destroyContext(c);
     });
 
-    it('getCanvas', function() {
-        expect(context.getCanvas()).not.toBeNull();
+    it('get canvas', function() {
+        expect(context.canvas).not.toBeNull();
     });
 
-    it('getVersion', function() {
-        expect(context.getVersion()).toMatch('WebGL');
+    it('get version', function() {
+        expect(context.version).toMatch('WebGL');
     });
 
-    it('getShadingLanguageVersion', function() {
-        expect(context.getShadingLanguageVersion()).toMatch('WebGL GLSL ES');
+    it('get shadingLanguageVersion', function() {
+        expect(context.shadingLanguageVersion).toMatch('WebGL GLSL ES');
     });
 
-    it('getVendor', function() {
-        expect(context.getVendor()).not.toBeNull();
+    it('get vendor', function() {
+        expect(context.vendor).not.toBeNull();
     });
 
-    it('getRenderer', function() {
-        expect(context.getRenderer()).not.toBeNull();
+    it('get renderer', function() {
+        expect(context.renderer).not.toBeNull();
     });
 
-    it('getRedBits', function() {
-        expect(context.getRedBits()).toEqual(8);
+    it('get redBits', function() {
+        expect(context.redBits).toEqual(8);
     });
 
-    it('getGreenBits', function() {
-        expect(context.getGreenBits()).toEqual(8);
+    it('get greenBits', function() {
+        expect(context.greenBits).toEqual(8);
     });
 
-    it('getBlueBits', function() {
-        expect(context.getBlueBits()).toEqual(8);
+    it('get blueBits', function() {
+        expect(context.blueBits).toEqual(8);
     });
 
-    it('getAlphaBits', function() {
-        expect(context.getAlphaBits()).toEqual(8);
+    it('get alphaBits', function() {
+        expect(context.alphaBits).toEqual(8);
     });
 
-    it('getDepthBits', function() {
-        expect(context.getDepthBits()).toBeGreaterThanOrEqualTo(16);
+    it('get depthBits', function() {
+        expect(context.depthBits).toBeGreaterThanOrEqualTo(16);
     });
 
-    it('getStencilBits', function() {
-        expect(context.getStencilBits()).toBeGreaterThanOrEqualTo(0);
+    it('get stencilBits', function() {
+        expect(context.stencilBits).toBeGreaterThanOrEqualTo(0);
     });
 
-    it('getMaximumCombinedTextureImageUnits', function() {
-        expect(context.getMaximumCombinedTextureImageUnits()).toBeGreaterThanOrEqualTo(8);
+    it('get maximumCombinedTextureImageUnits', function() {
+        expect(context.maximumCombinedTextureImageUnits).toBeGreaterThanOrEqualTo(8);
     });
 
-    it('getMaximumCubeMapSize', function() {
-        expect(context.getMaximumCubeMapSize()).toBeGreaterThanOrEqualTo(16);
+    it('get maximumCubeMapSize', function() {
+        expect(context.maximumCubeMapSize).toBeGreaterThanOrEqualTo(16);
     });
 
-    it('getMaximumFragmentUniformVectors', function() {
-        expect(context.getMaximumFragmentUniformVectors()).toBeGreaterThanOrEqualTo(16);
+    it('get maximumFragmentUniformVectors', function() {
+        expect(context.maximumFragmentUniformVectors).toBeGreaterThanOrEqualTo(16);
     });
 
-    it('getMaximumTextureImageUnits', function() {
-        expect(context.getMaximumTextureImageUnits()).toBeGreaterThanOrEqualTo(8);
+    it('get maximumTextureImageUnits', function() {
+        expect(context.maximumTextureImageUnits).toBeGreaterThanOrEqualTo(8);
     });
 
-    it('getMaximumRenderbufferSize', function() {
-        expect(context.getMaximumRenderbufferSize()).toBeGreaterThanOrEqualTo(1);
+    it('get maximumRenderbufferSize', function() {
+        expect(context.maximumRenderbufferSize).toBeGreaterThanOrEqualTo(1);
     });
 
-    it('getMaximumTextureSize', function() {
-        expect(context.getMaximumTextureSize()).toBeGreaterThanOrEqualTo(64);
+    it('get maximumTextureSize', function() {
+        expect(context.maximumTextureSize).toBeGreaterThanOrEqualTo(64);
     });
 
-    it('getMaximumVaryingVectors', function() {
-        expect(context.getMaximumVaryingVectors()).toBeGreaterThanOrEqualTo(8);
+    it('get maximumVaryingVectors', function() {
+        expect(context.maximumVaryingVectors).toBeGreaterThanOrEqualTo(8);
     });
 
-    it('getMaximumVertexAttributes', function() {
-        expect(context.getMaximumVertexAttributes()).toBeGreaterThanOrEqualTo(8);
+    it('get maximumVertexAttributes', function() {
+        expect(context.maximumVertexAttributes).toBeGreaterThanOrEqualTo(8);
     });
 
-    it('getMaximumVertexTextureImageUnits', function() {
-        expect(context.getMaximumVertexTextureImageUnits()).toBeGreaterThanOrEqualTo(0);
+    it('get maximumVertexTextureImageUnits', function() {
+        expect(context.maximumVertexTextureImageUnits).toBeGreaterThanOrEqualTo(0);
     });
 
-    it('getMaximumVertexUniformVectors', function() {
-        expect(context.getMaximumVertexUniformVectors()).toBeGreaterThanOrEqualTo(1);
+    it('get maximumVertexUniformVectors', function() {
+        expect(context.maximumVertexUniformVectors).toBeGreaterThanOrEqualTo(1);
     });
 
-    it('getMinimumAliasedLineWidth', function() {
-        expect(context.getMinimumAliasedLineWidth()).toBeLessThanOrEqualTo(1);
+    it('get minimumAliasedLineWidth', function() {
+        expect(context.minimumAliasedLineWidth).toBeLessThanOrEqualTo(1);
     });
 
-    it('getMaximumAliasedLineWidth', function() {
-        expect(context.getMaximumAliasedLineWidth()).toBeGreaterThanOrEqualTo(1);
+    it('get maximumAliasedLineWidth', function() {
+        expect(context.maximumAliasedLineWidth).toBeGreaterThanOrEqualTo(1);
     });
 
-    it('getMinimumAliasedPointSize', function() {
-        expect(context.getMinimumAliasedPointSize()).toBeLessThanOrEqualTo(1);
+    it('get minimumAliasedPointSize', function() {
+        expect(context.minimumAliasedPointSize).toBeLessThanOrEqualTo(1);
     });
 
-    it('getMaximumAliasedPointSize', function() {
-        expect(context.getMaximumAliasedPointSize()).toBeGreaterThanOrEqualTo(1);
+    it('get maximumAliasedPointSize', function() {
+        expect(context.maximumAliasedPointSize).toBeGreaterThanOrEqualTo(1);
     });
 
-    it('getMaximumViewportWidth', function() {
-        expect(context.getMaximumViewportWidth()).toBeGreaterThan(0);
+    it('get maximumViewportWidth', function() {
+        expect(context.maximumViewportWidth).toBeGreaterThan(0);
     });
 
-    it('getMaximumViewportHeight', function() {
-        expect(context.getMaximumViewportHeight()).toBeGreaterThan(0);
+    it('get maximumViewportHeight', function() {
+        expect(context.maximumViewportHeight).toBeGreaterThan(0);
+    });
+
+    it('gets antialias', function() {
+        var c = createContext({
+            webgl : {
+                antialias : false
+            }
+        });
+        expect(c.antialias).toEqual(false);
+        destroyContext(c);
     });
 
     it('gets the standard derivatives extension', function() {
@@ -155,59 +169,98 @@ defineSuite([
 
         var pixel = renderFragment(context, fs);
 
-        if (context.getStandardDerivatives()) {
+        if (context.standardDerivatives) {
             expect(pixel).toEqual([0, 0, 255, 255]);
         } else {
             expect(pixel).toEqual([255, 255, 255, 255]);
         }
     });
 
-    it('gets the depth texture extension', function() {
-        expect(context.getDepthTexture()).toBeDefined();
-    });
-
-    it('gets texture filter anisotropic', function() {
-        expect(context.getTextureFilterAnisotropic()).toBeDefined();
-    });
-
-    it('gets maximum texture filter anisotropy', function() {
-        if(context.getTextureFilterAnisotropic()) {
-            expect(context.getMaximumTextureFilterAnisotropy() >= 2.0).toEqual(true);
+    it('gets the element index uint extension', function() {
+        if (context.elementIndexUint) {
+            var buffer = context.createIndexBuffer(6, BufferUsage.STREAM_DRAW, IndexDatatype.UNSIGNED_INT);
+            expect(buffer).toBeDefined();
+            buffer.destroy();
         } else {
-            expect(context.getMaximumTextureFilterAnisotropy()).toEqual(1.0);
+            expect(function() {
+                context.createIndexBuffer(6, BufferUsage.STREAM_DRAW, IndexDatatype.UNSIGNED_INT);
+            }).toThrowDeveloperError();
         }
     });
 
-    it('sets shader program validation', function() {
-        context.setValidateShaderProgram(false);
-        expect(context.getValidateShaderProgram()).toEqual(false);
-
-        context.setValidateShaderProgram(true);
-        expect(context.getValidateShaderProgram()).toEqual(true);
+    it('gets the depth texture extension', function() {
+        expect(context.depthTexture).toBeDefined();
     });
 
-    it('sets framebuffer validation', function() {
-        context.setValidateFramebuffer(false);
-        expect(context.getValidateFramebuffer()).toEqual(false);
-
-        context.setValidateFramebuffer(true);
-        expect(context.getValidateFramebuffer()).toEqual(true);
+    it('gets the texture float extension', function() {
+        expect(context.floatingPointTexture).toBeDefined();
     });
 
-    it('sets logging shader compilation', function() {
-        context.setLogShaderCompilation(false);
-        expect(context.getLogShaderCompilation()).toEqual(false);
-
-        context.setLogShaderCompilation(true);
-        expect(context.getLogShaderCompilation()).toEqual(true);
+    it('gets texture filter anisotropic extension', function() {
+        expect(context.textureFilterAnisotropic).toBeDefined();
     });
 
-    it('sets throws on WebGL errors', function() {
-        context.setThrowOnWebGLError(false);
-        expect(context.getThrowOnWebGLError()).toEqual(false);
+    it('gets maximum texture filter anisotropy', function() {
+        if(context.textureFilterAnisotropic) {
+            expect(context.maximumTextureFilterAnisotropy >= 2).toEqual(true);
+        } else {
+            expect(context.maximumTextureFilterAnisotropy).toEqual(1);
+        }
+    });
 
-        context.setThrowOnWebGLError(true);
-        expect(context.getThrowOnWebGLError()).toEqual(true);
+    it('gets vertex array object extension', function() {
+        expect(context.vertexArrayObject).toBeDefined();
+    });
+
+    it('get the fragment depth extension', function() {
+        var fs =
+            'void main()\n' +
+            '{\n' +
+            '  gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);\n' +
+            '}';
+
+        var pixel = renderFragment(context, fs, 0.5, true);
+        expect(pixel).toEqual([255, 0, 0, 255]);
+
+        var fsDragDepth =
+            '#ifdef GL_EXT_frag_depth\n' +
+            '  #extension GL_EXT_frag_depth : enable\n' +
+            '#endif\n' +
+            'void main()\n' +
+            '{\n' +
+            '  gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);\n' +
+            '#ifdef GL_EXT_frag_depth\n' +
+            '  gl_FragDepthEXT = 0.0;\n' +
+            '#endif\n' +
+            '}';
+
+        pixel = renderFragment(context, fsDragDepth, 1.0, false);
+
+        if (context.fragmentDepth) {
+            expect(pixel).toEqual([0, 255, 0, 255]);
+        } else {
+            expect(pixel).toEqual([255, 0, 0, 255]);
+        }
+    });
+
+    it('get the draw buffers extension', function() {
+        expect(context.drawBuffers).toBeDefined();
+    });
+
+    it('get the maximum number of draw buffers', function() {
+        if (context.drawBuffers) {
+            expect(context.maximumDrawBuffers).toBeGreaterThanOrEqualTo(1);
+        } else {
+            expect(context.maximumDrawBuffers).toEqual(1);
+        }
+    });
+
+    it('get the maximum number of color attachments', function() {
+        if (context.drawBuffers) {
+            expect(context.maximumColorAttachments).toBeGreaterThanOrEqualTo(4);
+        } else {
+            expect(context.maximumColorAttachments).toEqual(1);
+        }
     });
 
     it('can create a pick ID and retrieve an object by pick color', function() {
@@ -221,7 +274,7 @@ defineSuite([
     it('throws when creating a pick ID without an object', function() {
         expect(function() {
             context.createPickId(undefined);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('returns undefined when retrieving an object by unknown pick color', function() {
@@ -231,25 +284,19 @@ defineSuite([
     it('throws when getObjectByPickColor is called without a color', function() {
         expect(function() {
             context.getObjectByPickColor(undefined);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('fails to construct (null canvas)', function() {
         expect(function() {
             return new Context();
-        }).toThrow();
-    });
-
-    it('continueDraw throws without arguments', function() {
-        expect(function() {
-            context.continueDraw();
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('isDestroyed', function() {
         var c = createContext();
         expect(c.isDestroyed()).toEqual(false);
-        c.destroy();
+        destroyContext(c);
         expect(c.isDestroyed()).toEqual(true);
     });
 
@@ -257,7 +304,7 @@ defineSuite([
         var c = createContext();
         var destroyableObject = jasmine.createSpyObj('destroyableObject', ['destroy']);
         c.cache.foo = destroyableObject;
-        c.destroy();
+        destroyContext(c);
         expect(destroyableObject.destroy).toHaveBeenCalled();
     });
 
@@ -265,6 +312,18 @@ defineSuite([
         var c = createContext();
         var nonDestroyableObject = {};
         c.cache.foo = nonDestroyableObject;
-        c.destroy();
+        destroyContext(c);
+    });
+
+    it('returns the underling drawingBufferWidth', function() {
+        var c = createContext(undefined, 1024, 768);
+        expect(c.drawingBufferWidth).toBe(1024);
+        destroyContext(c);
+    });
+
+    it('returns the underling drawingBufferHeight', function() {
+        var c = createContext(undefined, 1024, 768);
+        expect(c.drawingBufferHeight).toBe(768);
+        destroyContext(c);
     });
 }, 'WebGL');

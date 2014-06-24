@@ -1,19 +1,17 @@
 /*global define*/
 define([
         '../Core/BoundingSphere',
-        '../Core/Cartesian3',
         '../Core/Ellipsoid',
-        '../Core/Extent',
+        '../Core/EllipsoidalOccluder',
         '../Core/HeightmapTessellator',
-        '../Core/Occluder',
+        '../Core/Rectangle',
         './createTaskProcessorWorker'
     ], function(
         BoundingSphere,
-        Cartesian3,
         Ellipsoid,
-        Extent,
+        EllipsoidalOccluder,
         HeightmapTessellator,
-        Occluder,
+        Rectangle,
         createTaskProcessorWorker) {
     "use strict";
 
@@ -32,25 +30,16 @@ define([
         transferableObjects.push(vertices.buffer);
 
         parameters.ellipsoid = Ellipsoid.clone(parameters.ellipsoid);
-        parameters.extent = Extent.clone(parameters.extent);
+        parameters.rectangle = Rectangle.clone(parameters.rectangle);
 
         parameters.vertices = vertices;
 
         var statistics = HeightmapTessellator.computeVertices(parameters);
         var boundingSphere3D = BoundingSphere.fromVertices(vertices, parameters.relativeToCenter, numberOfAttributes);
 
-        var extent = parameters.extent;
         var ellipsoid = parameters.ellipsoid;
-
-        // We should really take the heights into account when computing the occludee point.
-        // And we should compute the occludee point using something less over-conservative than
-        // the ellipsoid-min-radius bounding sphere.  But these two wrongs cancel each other out
-        // enough that I've never seen artifacts from it.  Fixing this up (and perhaps culling
-        // more tiles as a result) is on the roadmap.
-        var occludeePointInScaledSpace = Occluder.computeOccludeePointFromExtent(extent, ellipsoid);
-        if (typeof occludeePointInScaledSpace !== 'undefined') {
-            Cartesian3.multiplyComponents(occludeePointInScaledSpace, ellipsoid.getOneOverRadii(), occludeePointInScaledSpace);
-        }
+        var occluder = new EllipsoidalOccluder(ellipsoid);
+        var occludeePointInScaledSpace = occluder.computeHorizonCullingPointFromVertices(parameters.relativeToCenter, vertices, numberOfAttributes, parameters.relativeToCenter);
 
         return {
             vertices : vertices.buffer,

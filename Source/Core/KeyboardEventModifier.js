@@ -1,5 +1,5 @@
 /*global define*/
-define(['./Enumeration'], function(Enumeration) {
+define(function() {
     "use strict";
 
     /**
@@ -12,26 +12,26 @@ define(['./Enumeration'], function(Enumeration) {
         /**
          * Represents the shift key being held down.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        SHIFT : new Enumeration(0, 'SHIFT'),
+        SHIFT : 0,
 
         /**
          * Represents the control key being held down.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        CTRL : new Enumeration(1, 'CTRL'),
+        CTRL : 1,
 
         /**
          * Represents the alt key being held down.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        ALT : new Enumeration(2, 'ALT')
+        ALT : 2
     };
 
     return KeyboardEventModifier;

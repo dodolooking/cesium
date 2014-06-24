@@ -1,12 +1,14 @@
 /*global define*/
 define([
+        '../ThirdParty/when',
         './defaultValue',
-        './DeveloperError',
-        '../ThirdParty/when'
+        './defined',
+        './DeveloperError'
     ], function(
+        when,
         defaultValue,
-        DeveloperError,
-        when) {
+        defined,
+        DeveloperError) {
     "use strict";
 
     function pushQueryParameter(array, name, value) {
@@ -19,26 +21,28 @@ define([
      * @exports jsonp
      *
      * @param {String} url The URL to request.
+     * @param {Object} [options] Object with the following properties:
      * @param {Object} [options.parameters] Any extra query parameters to append to the URL.
      * @param {String} [options.callbackParameterName='callback'] The callback parameter name that the server expects.
      * @param {Object} [options.proxy] A proxy to use for the request. This object is expected to have a getURL function which returns the proxied URL, if needed.
-     *
      * @returns {Object} a promise that will resolve to the requested data when loaded.
      *
-     * @see <a href='http://wiki.commonjs.org/wiki/Promises/A'>CommonJS Promises/A</a>
+     * @see {@link http://wiki.commonjs.org/wiki/Promises/A|CommonJS Promises/A}
      *
      * @example
      * // load a data asynchronously
-     * jsonp('some/webservice').then(function(data) {
+     * Cesium.jsonp('some/webservice').then(function(data) {
      *     // use the loaded data
-     * }, function() {
+     * }, function(error) {
      *     // an error occurred
      * });
      */
     var jsonp = function(url, options) {
-        if (typeof url === 'undefined') {
+        //>>includeStart('debug', pragmas.debug);
+        if (!defined(url)) {
             throw new DeveloperError('url is required.');
         }
+        //>>includeEnd('debug');
 
         options = defaultValue(options, defaultValue.EMPTY_OBJECT);
 
@@ -48,7 +52,7 @@ define([
         var functionName;
         do {
             functionName = 'jsonp' + Math.random().toString().substring(2, 8);
-        } while (typeof window[functionName] !== 'undefined');
+        } while (defined(window[functionName]));
 
         //assign a function with that name in the global scope
         window[functionName] = function(data) {
@@ -83,7 +87,7 @@ define([
         }
 
         var proxy = options.proxy;
-        if (typeof proxy !== 'undefined') {
+        if (defined(proxy)) {
             url = proxy.getURL(url);
         }
 

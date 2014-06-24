@@ -1,32 +1,28 @@
 /*global defineSuite*/
 defineSuite([
-         'Scene/ViewportQuad',
-         'Specs/createContext',
-         'Specs/destroyContext',
-         'Specs/createCamera',
-         'Specs/createFrameState',
-         'Specs/frameState',
-         'Specs/pick',
-         'Specs/render',
-         'Core/BoundingRectangle',
-         'Core/Cartesian3',
-         'Core/Color',
-         'Renderer/ClearCommand',
-         'Scene/Material'
-     ], function(
-         ViewportQuad,
-         createContext,
-         destroyContext,
-         createCamera,
-         createFrameState,
-         frameState,
-         pick,
-         render,
-         BoundingRectangle,
-         Cartesian3,
-         Color,
-         ClearCommand,
-         Material) {
+        'Scene/ViewportQuad',
+        'Core/BoundingRectangle',
+        'Core/Color',
+        'Renderer/ClearCommand',
+        'Scene/Material',
+        'Specs/createCamera',
+        'Specs/createContext',
+        'Specs/createFrameState',
+        'Specs/destroyContext',
+        'Specs/frameState',
+        'Specs/render'
+    ], function(
+        ViewportQuad,
+        BoundingRectangle,
+        Color,
+        ClearCommand,
+        Material,
+        createCamera,
+        createContext,
+        createFrameState,
+        destroyContext,
+        frameState,
+        render) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
 
@@ -50,8 +46,8 @@ defineSuite([
         viewportQuad = new ViewportQuad();
         viewportQuad.rectangle = new BoundingRectangle(0, 0, 2, 2);
 
-        us = context.getUniformState();
-        us.update(createFrameState(createCamera(context)));
+        us = context.uniformState;
+        us.update(context, createFrameState(createCamera()));
     });
 
     afterEach(function() {
@@ -66,7 +62,7 @@ defineSuite([
     });
 
     it('constructs with a material', function() {
-        var material = Material.fromType(undefined, Material.ErosionType);
+        var material = Material.fromType(Material.StripeType);
         var quad = new ViewportQuad(undefined, material);
         expect(quad.material.type).toEqual(material.type);
     });
@@ -81,7 +77,7 @@ defineSuite([
 
         expect(function() {
             render(context, frameState, viewportQuad);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('throws when rendered with without a material', function() {
@@ -89,7 +85,7 @@ defineSuite([
 
         expect(function() {
             render(context, frameState, viewportQuad);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('does not render when show is false', function() {
@@ -120,7 +116,7 @@ defineSuite([
                 source : testImage
             });
 
-            viewportQuad.material = Material.fromType(context, Material.ImageType);
+            viewportQuad.material = Material.fromType(Material.ImageType);
             viewportQuad.material.uniforms.image = texture;
 
             ClearCommand.ALL.execute(context);

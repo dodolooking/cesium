@@ -1,17 +1,17 @@
 /*global defineSuite*/
 defineSuite([
-             'Core/loadArrayBuffer',
-             'Core/RequestErrorEvent'
-            ], function(
-             loadArrayBuffer,
-             RequestErrorEvent) {
+        'Core/loadArrayBuffer',
+        'Core/RequestErrorEvent'
+    ], function(
+        loadArrayBuffer,
+        RequestErrorEvent) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
 
     var fakeXHR;
 
     beforeEach(function() {
-        fakeXHR = jasmine.createSpyObj('XMLHttpRequest', ['send', 'open', 'setRequestHeader', 'abort']);
+        fakeXHR = jasmine.createSpyObj('XMLHttpRequest', ['send', 'open', 'setRequestHeader', 'abort', 'getAllResponseHeaders']);
         fakeXHR.simulateLoad = function(response) {
             fakeXHR.status = 200;
             fakeXHR.response = response;
@@ -39,11 +39,11 @@ defineSuite([
     it('throws with no url', function() {
         expect(function() {
             loadArrayBuffer();
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('creates and sends request without any custom headers', function() {
-        var testUrl = 'http://example.com/testuri';
+        var testUrl = 'http://example.invalid/testuri';
         loadArrayBuffer(testUrl);
 
         expect(fakeXHR.open).toHaveBeenCalledWith('GET', testUrl, true);
@@ -52,7 +52,7 @@ defineSuite([
     });
 
     it('creates and sends request with custom headers', function() {
-        var testUrl = 'http://example.com/testuri';
+        var testUrl = 'http://example.invalid/testuri';
         loadArrayBuffer(testUrl, {
             'Accept' : 'application/json',
             'Cache-Control' : 'no-cache'
@@ -66,7 +66,7 @@ defineSuite([
     });
 
     it('returns a promise that resolves when the request loads', function() {
-        var testUrl = 'http://example.com/testuri';
+        var testUrl = 'http://example.invalid/testuri';
         var promise = loadArrayBuffer(testUrl);
 
         expect(promise).toBeDefined();
@@ -89,7 +89,7 @@ defineSuite([
     });
 
     it('returns a promise that rejects when the request errors', function() {
-        var testUrl = 'http://example.com/testuri';
+        var testUrl = 'http://example.invalid/testuri';
         var promise = loadArrayBuffer(testUrl);
 
         expect(promise).toBeDefined();
@@ -113,7 +113,7 @@ defineSuite([
     });
 
     it('returns a promise that rejects when the request results in an HTTP error code', function() {
-        var testUrl = 'http://example.com/testuri';
+        var testUrl = 'http://example.invalid/testuri';
         var promise = loadArrayBuffer(testUrl);
 
         expect(promise).toBeDefined();

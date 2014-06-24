@@ -1,5 +1,8 @@
 /*global define*/
-define(function() {
+define([
+        './defined'
+    ], function(
+        defined) {
     "use strict";
 
     /**
@@ -12,46 +15,50 @@ define(function() {
      * calling code.
      *
      * @alias RuntimeError
+     * @constructor
      *
-     * @param {String} [message=undefined] The error message for this exception.
+     * @param {String} [message] The error message for this exception.
      *
      * @see DeveloperError
-     * @constructor
      */
     var RuntimeError = function(message) {
         /**
          * 'RuntimeError' indicating that this exception was thrown due to a runtime error.
-         * @type String
-         * @constant
+         * @type {String}
+         * @readonly
          */
         this.name = 'RuntimeError';
 
         /**
          * The explanation for why this exception was thrown.
-         * @type String
-         * @constant
+         * @type {String}
+         * @readonly
          */
         this.message = message;
 
+        //Browsers such as IE don't have a stack property until you actually throw the error.
+        var stack;
+        try {
+            throw new Error();
+        } catch (e) {
+            stack = e.stack;
+        }
+
         /**
-         * The Error object containing the stack trace.
-         * @type Error
-         * @constant
-         *
-         * @see <a href='https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Error'>Error object on Mozilla Developer Network</a>.
+         * The stack trace of this exception, if available.
+         * @type {String}
+         * @readonly
          */
-        this.error = new Error();
+        this.stack = stack;
     };
 
-    RuntimeError.prototype.toString = function () {
+    RuntimeError.prototype.toString = function() {
         var str = this.name + ': ' + this.message;
-        if (typeof this.error !== 'undefined') {
-            if (typeof this.error.stack !== 'undefined') {
-                str += '\n' + this.error.stack.toString();
-            } else {
-                str += '\n' + this.error.toString();
-            }
+
+        if (defined(this.stack)) {
+            str += '\n' + this.stack.toString();
         }
+
         return str;
     };
 

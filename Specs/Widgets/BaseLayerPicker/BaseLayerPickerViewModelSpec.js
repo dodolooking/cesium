@@ -1,13 +1,21 @@
 /*global defineSuite*/
-defineSuite(['Widgets/BaseLayerPicker/BaseLayerPickerViewModel',
-             'Widgets/BaseLayerPicker/ImageryProviderViewModel',
-             'Scene/ImageryLayerCollection'
-            ], function(
-              BaseLayerPickerViewModel,
-              ImageryProviderViewModel,
-              ImageryLayerCollection) {
+defineSuite([
+        'Widgets/BaseLayerPicker/BaseLayerPickerViewModel',
+        'Core/EllipsoidTerrainProvider',
+        'Scene/ImageryLayerCollection',
+        'Widgets/BaseLayerPicker/ProviderViewModel'
+    ], function(
+        BaseLayerPickerViewModel,
+        EllipsoidTerrainProvider,
+        ImageryLayerCollection,
+        ProviderViewModel) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
+
+    var MockGlobe = function() {
+        this.imageryLayers = new ImageryLayerCollection();
+        this.terrainProvider = new EllipsoidTerrainProvider();
+    };
 
     var testProvider = {
         isReady : function() {
@@ -15,7 +23,19 @@ defineSuite(['Widgets/BaseLayerPicker/BaseLayerPickerViewModel',
         }
     };
 
-    var testProviderViewModel = ImageryProviderViewModel.fromConstants({
+    var testProvider2 = {
+        isReady : function() {
+            return false;
+        }
+    };
+
+    var testProvider3 = {
+        isReady : function() {
+            return false;
+        }
+    };
+
+    var testProviderViewModel = new ProviderViewModel({
         name : 'name',
         tooltip : 'tooltip',
         iconUrl : 'url',
@@ -24,91 +44,166 @@ defineSuite(['Widgets/BaseLayerPicker/BaseLayerPickerViewModel',
         }
     });
 
-    var testProvider2 = {
-        isReady : function() {
-            return false;
-        }
-    };
-
-    var testProviderViewModel2 = ImageryProviderViewModel.fromConstants({
-        name : 'name',
-        tooltip : 'tooltip',
-        iconUrl : 'url',
+    var testProviderViewModel2 = new ProviderViewModel({
+        name : 'name2',
+        tooltip : 'tooltip2',
+        iconUrl : 'url2',
         creationFunction : function() {
-            return testProvider2;
+            return [testProvider, testProvider2];
+        }
+    });
+
+    var testProviderViewModel3 = new ProviderViewModel({
+        name : 'name3',
+        tooltip : 'tooltip3',
+        iconUrl : 'url3',
+        creationFunction : function() {
+            return testProvider3;
         }
     });
 
     it('constructor sets expected values', function() {
-        var array = [];
-        var imageryLayers = new ImageryLayerCollection();
-        var viewModel = new BaseLayerPickerViewModel(imageryLayers, array);
-        expect(viewModel.imageryLayers).toBe(imageryLayers);
-        expect(viewModel.imageryProviderViewModels()).toBe(array);
+        var imageryViewModels = [];
+        var terrainViewModels = [];
+
+        var globe = new MockGlobe();
+
+        var viewModel = new BaseLayerPickerViewModel({
+            globe : globe,
+            imageryProviderViewModels : imageryViewModels,
+            terrainProviderViewModels : terrainViewModels
+        });
+        expect(viewModel.globe).toBe(globe);
+        expect(viewModel.imageryProviderViewModels).toEqual(imageryViewModels);
+        expect(viewModel.terrainProviderViewModels).toEqual(terrainViewModels);
     });
 
-    it('selecting an item closes the dropDown', function() {
-        var array = [testProviderViewModel];
-        var imageryLayers = new ImageryLayerCollection();
-        var viewModel = new BaseLayerPickerViewModel(imageryLayers, array);
+    it('selecting imagery closes the dropDown', function() {
+        var imageryViewModels = [testProviderViewModel];
+        var globe = new MockGlobe();
+        var imageryLayers = globe.imageryLayers;
+        var viewModel = new BaseLayerPickerViewModel({
+            globe : globe,
+            imageryProviderViewModels : imageryViewModels
+        });
 
-        viewModel.dropDownVisible(true);
-        viewModel.selectedItem(testProviderViewModel);
-        expect(viewModel.dropDownVisible()).toEqual(false);
+        viewModel.dropDownVisible = true;
+        viewModel.selectedImagery = testProviderViewModel;
+        expect(viewModel.dropDownVisible).toEqual(false);
     });
 
-    it('selectedName, selectedIconUrl, and selectedItem all return expected values', function() {
-        var array = [testProviderViewModel];
-        var imageryLayers = new ImageryLayerCollection();
-        var viewModel = new BaseLayerPickerViewModel(imageryLayers, array);
+    it('selecting terrain closes the dropDown', function() {
+        var imageryViewModels = [testProviderViewModel];
+        var globe = new MockGlobe();
+        var imageryLayers = globe.imageryLayers;
+        var viewModel = new BaseLayerPickerViewModel({
+            globe : globe,
+            imageryProviderViewModels : imageryViewModels
+        });
 
-        expect(viewModel.selectedName()).toBeUndefined();
-        expect(viewModel.selectedIconUrl()).toBeUndefined();
-        expect(viewModel.selectedItem()).toBeUndefined();
-
-        viewModel.selectedItem(testProviderViewModel);
-
-        expect(viewModel.selectedName()).toEqual(testProviderViewModel.name());
-        expect(viewModel.selectedIconUrl()).toEqual(testProviderViewModel.iconUrl());
-        expect(viewModel.selectedItem()).toBe(testProviderViewModel);
+        viewModel.dropDownVisible = true;
+        viewModel.selectedTerrain = testProviderViewModel;
+        expect(viewModel.dropDownVisible).toEqual(false);
     });
 
-    it('selectedItem actually sets base layer', function() {
-        var array = [testProviderViewModel];
-        var imageryLayers = new ImageryLayerCollection();
-        var viewModel = new BaseLayerPickerViewModel(imageryLayers, array);
+    it('tooltip, buttonImageUrl, and selectedImagery all return expected values', function() {
+        var imageryViewModels = [testProviderViewModel];
+        var terrainViewModels = [testProviderViewModel3];
+        var globe = new MockGlobe();
+        var imageryLayers = globe.imageryLayers;
 
-        expect(imageryLayers.getLength()).toEqual(0);
+        var viewModel = new BaseLayerPickerViewModel({
+            globe : globe,
+            imageryProviderViewModels : imageryViewModels,
+            terrainProviderViewModels : terrainViewModels
+        });
 
-        viewModel.selectedItem(testProviderViewModel);
-        expect(imageryLayers.getLength()).toEqual(1);
-        expect(imageryLayers.get(0).getImageryProvider()).toBe(testProvider);
+        viewModel.selectedImagery = testProviderViewModel;
+        expect(viewModel.buttonTooltip).toEqual(testProviderViewModel.name + '\n' + testProviderViewModel3.name);
 
-        viewModel.selectedItem(testProviderViewModel2);
-        expect(imageryLayers.getLength()).toEqual(1);
-        expect(imageryLayers.get(0).getImageryProvider()).toBe(testProvider2);
+        viewModel.selectedImagery = undefined;
+        expect(viewModel.buttonTooltip).toEqual(testProviderViewModel3.name);
+
+        viewModel.selectedImagery = testProviderViewModel;
+        viewModel.selectedTerrain = undefined;
+        expect(viewModel.buttonTooltip).toEqual(testProviderViewModel.name);
+
+        expect(viewModel.buttonImageUrl).toEqual(testProviderViewModel.iconUrl);
+    });
+
+    it('selectedImagery actually sets base layer', function() {
+        var imageryViewModels = [testProviderViewModel];
+        var globe = new MockGlobe();
+        var imageryLayers = globe.imageryLayers;
+        var viewModel = new BaseLayerPickerViewModel({
+            globe : globe,
+            imageryProviderViewModels : imageryViewModels
+        });
+
+        expect(imageryLayers.length).toEqual(1);
+
+        viewModel.selectedImagery = testProviderViewModel;
+        expect(imageryLayers.length).toEqual(1);
+        expect(imageryLayers.get(0).imageryProvider).toBe(testProvider);
+
+        viewModel.selectedImagery = testProviderViewModel2;
+        expect(imageryLayers.length).toEqual(2);
+        expect(imageryLayers.get(0).imageryProvider).toBe(testProvider);
+        expect(imageryLayers.get(1).imageryProvider).toBe(testProvider2);
+    });
+
+    it('selectedTerrain actually sets terrainPRovider', function() {
+        var terrainProviderViewModels = [testProviderViewModel, testProviderViewModel3];
+        var globe = new MockGlobe();
+        var viewModel = new BaseLayerPickerViewModel({
+            globe : globe,
+            terrainProviderViewModels : terrainProviderViewModels
+        });
+
+        viewModel.selectedTerrain = testProviderViewModel3;
+        expect(globe.terrainProvider).toBe(testProvider3);
+    });
+
+    it('settings selectedImagery only removes layers added by view model', function() {
+        var imageryViewModels = [testProviderViewModel];
+        var globe = new MockGlobe();
+        var imageryLayers = globe.imageryLayers;
+        var viewModel = new BaseLayerPickerViewModel({
+            globe : globe,
+            imageryProviderViewModels : imageryViewModels
+        });
+
+        expect(imageryLayers.length).toEqual(1);
+
+        viewModel.selectedImagery = testProviderViewModel2;
+        expect(imageryLayers.length).toEqual(2);
+        expect(imageryLayers.get(0).imageryProvider).toBe(testProvider);
+        expect(imageryLayers.get(1).imageryProvider).toBe(testProvider2);
+
+        imageryLayers.addImageryProvider(testProvider3, 1);
+        imageryLayers.remove(imageryLayers.get(0));
+
+        viewModel.selectedImagery = undefined;
+
+        expect(imageryLayers.length).toEqual(1);
+        expect(imageryLayers.get(0).imageryProvider).toBe(testProvider3);
     });
 
     it('dropDownVisible and toggleDropDown work', function() {
-        var viewModel = new BaseLayerPickerViewModel(new ImageryLayerCollection());
+        var viewModel = new BaseLayerPickerViewModel({
+            globe : new MockGlobe()
+        });
 
-        expect(viewModel.dropDownVisible()).toEqual(false);
+        expect(viewModel.dropDownVisible).toEqual(false);
         viewModel.toggleDropDown();
-        expect(viewModel.dropDownVisible()).toEqual(true);
-        viewModel.dropDownVisible(false);
-        expect(viewModel.dropDownVisible()).toEqual(false);
+        expect(viewModel.dropDownVisible).toEqual(true);
+        viewModel.dropDownVisible = false;
+        expect(viewModel.dropDownVisible).toEqual(false);
     });
 
-    it('constructor throws with no layer collection', function() {
+    it('constructor throws with no globe', function() {
         expect(function() {
-            return new BaseLayerPickerViewModel(undefined);
-        }).toThrow();
-    });
-
-    it('constructor throws if viewModels argument is not an array', function() {
-        var imageryLayers = new ImageryLayerCollection();
-        expect(function() {
-            return new BaseLayerPickerViewModel(imageryLayers, {});
-        }).toThrow();
+            return new BaseLayerPickerViewModel({});
+        }).toThrowDeveloperError();
     });
 });

@@ -5,23 +5,18 @@
     <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">  <!-- Use Chrome Frame in IE -->
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
     <meta name="description" content="Browse Cesium's built in materials and define new ones using the Fabric schema.">
-    <meta name="cesium-sandcastle-labels" content="">
+    <meta name="cesium-sandcastle-labels" content="Showcases">
     <title>Cesium Demo</title>
     <script type="text/javascript" src="../Sandcastle-header.js"></script>
+    <script type="text/javascript" src="../../../ThirdParty/requirejs-2.1.9/require.js"></script>
     <script type="text/javascript">
-    var dojoConfig = {
+    require.config({
         baseUrl : '../../../Source',
-        packages: [
-            { name: 'dojo', location: '../ThirdParty/dojo-release-1.8.3-src/dojo' },
-            { name: 'dijit', location: '../ThirdParty/dojo-release-1.8.3-src/dijit' },
-            { name: 'dojox', location: '../ThirdParty/dojo-release-1.8.3-src/dojox' }
-        ]
-    };
+        waitSeconds : 60
+    });
     </script>
-    <script data-dojo-config="async: 1, tlmSiblingOfDojo: 0" src="../../../ThirdParty/dojo-release-1.8.3-src/dojo/dojo.js"></script>
-    <link rel="stylesheet" href="../../../ThirdParty/dojo-release-1.8.3-src/dijit/themes/claro/claro.css" type="text/css">
 </head>
-<body class="claro sandcastle-loading" data-sandcastle-bucket="bucket-dojo.html" data-sandcastle-title="Cesium + Dojo">
+<body class="sandcastle-loading" data-sandcastle-bucket="bucket-requirejs.html" data-sandcastle-title="Cesium + require.js">
 <style>
     @import url(../templates/bucket.css);
 </style>
@@ -29,21 +24,16 @@
 <div id="loadingOverlay"><h1>Loading...</h1></div>
 <div id="toolbar"></div>
 <script id="cesium_sandcastle_script">
-require([
-    'Cesium', 'dijit/form/DropDownButton', 'dijit/DropDownMenu', 'dijit/MenuItem'
-], function(
-    Cesium, DropDownButton, DropDownMenu, MenuItem)
-{
+require(['Cesium'], function(Cesium) {
     "use strict";
 
-    var polygon;
-    var worldPolygon;
+    var rectangle;
+    var worldRectangle;
     var polyline;
 
     function applyAlphaMapMaterial(primitive, scene) {
         Sandcastle.declare(applyAlphaMapMaterial);  // For highlighting in Sandcastle.
         primitive.material = new Cesium.Material({
-            context : scene.getContext(),
             fabric : {
                 materials : {
                     alphaMaterial : {
@@ -62,25 +52,9 @@ require([
         });
     }
 
-    function applyAsphaltMaterial(primitive, scene) {
-        Sandcastle.declare(applyAsphaltMaterial);   // For highlighting in Sandcastle.
-        primitive.material = new Cesium.Material.fromType(scene.getContext(), 'Asphalt');
-    }
-
-    function applyBlobMaterial(primitive, scene) {
-        Sandcastle.declare(applyBlobMaterial);  // For highlighting in Sandcastle.
-        primitive.material = new Cesium.Material.fromType(scene.getContext(), 'Blob');
-    }
-
-    function applyBrickMaterial(primitive, scene) {
-        Sandcastle.declare(applyBrickMaterial); // For highlighting in Sandcastle.
-        primitive.material = new Cesium.Material.fromType(scene.getContext(), 'Brick');
-    }
-
     function applyBumpMapMaterial(primitive, scene) {
         Sandcastle.declare(applyBumpMapMaterial);   // For highlighting in Sandcastle.
         primitive.material = new Cesium.Material({
-            context : scene.getContext(),
             fabric : {
                 materials : {
                     diffuseMaterial : {
@@ -106,58 +80,19 @@ require([
         });
     }
 
-    function applyCementMaterial(primitive, scene) {
-        Sandcastle.declare(applyCementMaterial);    // For highlighting in Sandcastle.
-        primitive.material = new Cesium.Material.fromType(scene.getContext(), 'Cement');
-    }
-
     function applyCheckerboardMaterial(primitive, scene) {
         Sandcastle.declare(applyCheckerboardMaterial);  // For highlighting in Sandcastle.
-        primitive.material = new Cesium.Material.fromType(scene.getContext(), 'Checkerboard');
+        primitive.material = Cesium.Material.fromType('Checkerboard');
     }
 
     function applyColorMaterial(primitive, scene) {
         Sandcastle.declare(applyColorMaterial); // For highlighting in Sandcastle.
-        primitive.material = new Cesium.Material.fromType(scene.getContext(), 'Color');
+        primitive.material = Cesium.Material.fromType('Color');
     }
 
-    function applyCompositeMaterial1(primitive, scene) {
-        Sandcastle.declare(applyCompositeMaterial1);    // For highlighting in Sandcastle.
+    function applyCompositeMaterial(primitive, scene) {
+        Sandcastle.declare(applyCompositeMaterial);    // For highlighting in Sandcastle.
         primitive.material = new Cesium.Material({
-            context: scene.getContext(),
-            fabric: {
-                materials : {
-                    grass : {
-                        type : 'Grass'
-                    },
-                    asphalt : {
-                        type : 'Asphalt'
-                    },
-                    cement : {
-                        type : 'Cement'
-                    }
-                },
-                source :
-                    'czm_material czm_getMaterial(czm_materialInput materialInput) {' +
-                        'czm_material material = czm_getDefaultMaterial(materialInput);' +
-                        'float distanceFromCenter = abs(materialInput.st - vec2(0.5)).x;' +
-                        'if (distanceFromCenter > 0.3) { ' +
-                            'material.diffuse = grass.diffuse;' +
-                        '} else if (distanceFromCenter > 0.2) { ' +
-                            'material.diffuse = cement.diffuse;' +
-                        '} else {' +
-                            'material.diffuse = asphalt.diffuse;' +
-                        '}' +
-                        'return material;' +
-                    '}'
-            }
-        });
-    }
-
-    function applyCompositeMaterial2(primitive, scene) {
-        Sandcastle.declare(applyCompositeMaterial2);    // For highlighting in Sandcastle.
-        primitive.material = new Cesium.Material({
-                context: scene.getContext(),
                 fabric: {
                     uniforms : {
                         image: '../images/earthspec1k.jpg',
@@ -188,13 +123,12 @@ require([
 
     function applyDotMaterial(primitive, scene) {
         Sandcastle.declare(applyDotMaterial);   // For highlighting in Sandcastle.
-        primitive.material = new Cesium.Material.fromType(scene.getContext(), 'Dot');
+        primitive.material = Cesium.Material.fromType('Dot');
     }
 
     function applyDiffuseMaterial(primitive, scene) {
         Sandcastle.declare(applyDiffuseMaterial);   // For highlighting in Sandcastle.
         primitive.material = new Cesium.Material({
-            context : scene.getContext(),
             fabric : {
                 type : 'DiffuseMap',
                 uniforms : {
@@ -207,7 +141,6 @@ require([
     function applyEmissionMapMaterial(primitive, scene) {
         Sandcastle.declare(applyEmissionMapMaterial);   // For highlighting in Sandcastle.
         primitive.material = new Cesium.Material({
-            context : scene.getContext(),
             fabric : {
                 materials : {
                     diffuseMaterial : {
@@ -235,16 +168,10 @@ require([
         });
     }
 
-    function applyFacetMaterial(primitive, scene) {
-        Sandcastle.declare(applyFacetMaterial); // For highlighting in Sandcastle.
-        primitive.material = new Cesium.Material.fromType(scene.getContext(), 'Facet');
-    }
-
     function applyWaterMaterial(primitive, scene) {
         Sandcastle.declare(applyWaterMaterial); // For highlighting in Sandcastle.
 
         primitive.material = new Cesium.Material({
-            context : scene.getContext(),
             fabric : {
                 type : 'Water',
                 uniforms : {
@@ -263,7 +190,6 @@ require([
 
         var imagePath = '../images/checkerboard.png';
         primitive.material = new Cesium.Material({
-            context : scene.getContext(),
             fabric : {
                 uniforms : {
                     image : '../images/earthspec1k.jpg'
@@ -307,20 +233,14 @@ require([
         });
     }
 
-    function applyGrassMaterial(primitive, scene) {
-        Sandcastle.declare(applyGrassMaterial); // For highlighting in Sandcastle.
-        primitive.material = new Cesium.Material.fromType(scene.getContext(), 'Grass');
-    }
-
     function applyGridMaterial(primitive, scene) {
         Sandcastle.declare(applyGridMaterial); // For highlighting in Sandcastle.
-        primitive.material = new Cesium.Material.fromType(scene.getContext(), 'Grid');
+        primitive.material = Cesium.Material.fromType('Grid');
     }
 
     function applyImageMaterial(primitive, scene) {
         Sandcastle.declare(applyImageMaterial); // For highlighting in Sandcastle.
         primitive.material = new Cesium.Material({
-            context : scene.getContext(),
             fabric : {
                 type : 'Image',
                 uniforms : {
@@ -333,7 +253,6 @@ require([
     function applyNormalMapMaterial(primitive, scene) {
         Sandcastle.declare(applyNormalMapMaterial); // For highlighting in Sandcastle.
         primitive.material = new Cesium.Material({
-            context : scene.getContext(),
             fabric : {
                 materials : {
                     diffuseMaterial : {
@@ -363,7 +282,6 @@ require([
         Sandcastle.declare(applyReflectionMaterial);    // For highlighting in Sandcastle.
         var imagePath = '../images/checkerboard.png';
         primitive.material = new Cesium.Material({
-            context : scene.getContext(),
             fabric : {
                 uniforms : {
                     image : '../images/earthspec1k.jpg'
@@ -395,7 +313,6 @@ require([
         Sandcastle.declare(applyRefractionMaterial);    // For highlighting in Sandcastle.
         var imagePath = '../images/checkerboard.png';
         primitive.material = new Cesium.Material({
-            context : scene.getContext(),
             fabric : {
                 uniforms : {
                     image : '../images/earthspec1k.jpg'
@@ -427,7 +344,6 @@ require([
     function applySpecularMapMaterial(primitive, scene) {
         Sandcastle.declare(applySpecularMapMaterial);   // For highlighting in Sandcastle.
         primitive.material = new Cesium.Material({
-            context : scene.getContext(),
             fabric : {
                 type : 'SpecularMap',
                 uniforms : {
@@ -440,437 +356,294 @@ require([
 
     function applyStripeMaterial(primitive, scene) {
         Sandcastle.declare(applyStripeMaterial);    // For highlighting in Sandcastle.
-        primitive.material = new Cesium.Material.fromType(scene.getContext(), 'Stripe');
-    }
-
-    function applyTieDyeMaterial(primitive, scene) {
-        Sandcastle.declare(applyTieDyeMaterial);    // For highlighting in Sandcastle.
-        primitive.material = new Cesium.Material.fromType(scene.getContext(), 'TieDye');
-    }
-
-    function applyWoodMaterial(primitive, scene) {
-        Sandcastle.declare(applyWoodMaterial);  // For highlighting in Sandcastle.
-        primitive.material = new Cesium.Material.fromType(scene.getContext(), 'Wood');
-    }
-
-    function applyErosionMaterial(primitive, scene) {
-        Sandcastle.declare(applyErosionMaterial);  // For highlighting in Sandcastle.
-        primitive.material = new Cesium.Material.fromType(scene.getContext(), 'Erosion');
-        scene.getAnimations().addProperty(primitive.material.uniforms, 'time', 0.0, 1.0, {
-            duration : 1500
-        });
+        primitive.material = Cesium.Material.fromType('Stripe');
     }
 
     function applyRimLightingMaterial(primitive, scene) {
         Sandcastle.declare(applyRimLightingMaterial);  // For highlighting in Sandcastle.
-        primitive.material = new Cesium.Material.fromType(scene.getContext(), 'RimLighting');
+        primitive.material = Cesium.Material.fromType('RimLighting');
     }
 
     function applyPolylineArrowMaterial(primitive, scene) {
         Sandcastle.declare(applyPolylineArrowMaterial);  // For highlighting in Sandcastle.
-        var material = new Cesium.Material.fromType(scene.getContext(), 'PolylineArrow');
-        primitive.setMaterial(material);
+        var material = Cesium.Material.fromType('PolylineArrow');
+        primitive.material = material;
     }
 
     function applyPolylineGlowMaterial(primitive, scene) {
         Sandcastle.declare(applyPolylineGlowMaterial);  // For highlighting in Sandcastle.
-        var material = new Cesium.Material.fromType(scene.getContext(), 'PolylineGlow');
-        material.uniforms.innerWidth = primitive.getWidth() / 2.0;
-        primitive.setMaterial(material);
+        var material = Cesium.Material.fromType('PolylineGlow', {
+            innerWidth : primitive.width / 2.0
+        });
+        primitive.material = material;
     }
 
     function applyPolylineOutlineMaterial(primitive, scene) {
         Sandcastle.declare(applyPolylineOutlineMaterial);  // For highlighting in Sandcastle.
-        var material = new Cesium.Material.fromType(scene.getContext(), 'PolylineOutline');
-        material.uniforms.outlineWidth = primitive.getWidth() / 2.0;
-        primitive.setMaterial(material);
+        var material = Cesium.Material.fromType('PolylineOutline', {
+            outlineWidth : primitive.width / 2.0
+        });
+        primitive.material = material;
     }
 
-    function createButtons(widget) {
-        var scene = widget.scene;
-        var primitives = scene.getPrimitives();
+    function createButtons(scene) {
+        var primitives = scene.primitives;
 
-        var commonMaterialMenu = new DropDownMenu({ style: "display: none;"});
-        var proceduralTextureMenu = new DropDownMenu({ style: "display: none;"});
-        var baseMaterialMenu = new DropDownMenu({ style: "display: none;"});
-        var miscMaterialMenu = new DropDownMenu({ style: "display: none;"});
-        var compositeMaterialMenu = new DropDownMenu({ style: "display: none;"});
-        var polylineMaterialMenu = new DropDownMenu({ style: "display: none;"});
+        function toggleRectangleVisibility() {
+            rectangle.show = true;
+            worldRectangle.show = false;
+            polyline.show = false;
+        }
 
-        function togglePolygonVisibility() {
-            polygon.show = true;
-            worldPolygon.show = false;
-            polyline.setShow(false);
+        function toggleWorldRectangleVisibility() {
+            worldRectangle.show = true;
+            rectangle.show = false;
+            polyline.show = false;
         }
-        
-        function toggleWorldPolygonVisibility() {
-            worldPolygon.show = true;
-            polygon.show = false;
-            polyline.setShow(false);
-        }
-        
+
         function togglePolylineVisibility() {
-            polyline.setShow(true);
-            worldPolygon.show = false;
-            polygon.show = false;
+            polyline.show = true;
+            worldRectangle.show = false;
+            rectangle.show = false;
         }
 
-        baseMaterialMenu.addChild(new MenuItem({
-            label: 'Alpha Map',
-            onClick: function() {
-                togglePolygonVisibility();
-                applyAlphaMapMaterial(polygon, scene);
-                Sandcastle.highlight(applyAlphaMapMaterial);
+        function selectMenuOption(menu, options) {
+            if (menu.selectedIndex > 0) {
+                options[menu.selectedIndex].onselect();
             }
-        }));
+            menu.selectedIndex = 0;
+        }
 
-        proceduralTextureMenu.addChild(new MenuItem({
-            label: 'Asphalt',
-            onClick: function() {
-                togglePolygonVisibility();
-                applyAsphaltMaterial(polygon, scene);
-                Sandcastle.highlight(applyAsphaltMaterial);
-            }
-        }));
-
-        proceduralTextureMenu.addChild(new MenuItem({
-            label: 'Blob',
-            onClick: function() {
-                togglePolygonVisibility();
-                applyBlobMaterial(polygon, scene);
-                Sandcastle.highlight(applyBlobMaterial);
-            }
-        }));
-
-        proceduralTextureMenu.addChild(new MenuItem({
-            label: 'Brick',
-            onClick: function() {
-                togglePolygonVisibility();
-                applyBrickMaterial(polygon, scene);
-                Sandcastle.highlight(applyBrickMaterial);
-            }
-        }));
-
-        baseMaterialMenu.addChild(new MenuItem({
-            label: 'Bump Map',
-            onClick: function() {
-                togglePolygonVisibility();
-                applyBumpMapMaterial(polygon, scene);
-                Sandcastle.highlight(applyBumpMapMaterial);
-            }
-        }));
-
-        proceduralTextureMenu.addChild(new MenuItem({
-            label: 'Cement',
-            onClick: function() {
-                togglePolygonVisibility();
-                applyCementMaterial(polygon, scene);
-                Sandcastle.highlight(applyCementMaterial);
-            }
-        }));
-
-        proceduralTextureMenu.addChild(new MenuItem({
-            label: 'Checkerboard',
-            onClick: function() {
-                togglePolygonVisibility();
-                applyCheckerboardMaterial(polygon, scene);
-                Sandcastle.highlight(applyCheckerboardMaterial);
-            }
-        }));
-
-        compositeMaterialMenu.addChild(new MenuItem({
-            label: 'Composite Example 1',
-            onClick: function() {
-                togglePolygonVisibility();
-                applyCompositeMaterial1(polygon, scene);
-                Sandcastle.highlight(applyCompositeMaterial1);
-            }
-        }));
-
-        compositeMaterialMenu.addChild(new MenuItem({
-            label: 'Composite Example 2',
-            onClick: function() {
-                toggleWorldPolygonVisibility();
-                applyCompositeMaterial2(worldPolygon, scene);
-                Sandcastle.highlight(applyCompositeMaterial2);
-            }
-        }));
-
-        commonMaterialMenu.addChild(new MenuItem({
-            label: 'Color',
-            onClick: function() {
-                togglePolygonVisibility();
-                applyColorMaterial(polygon, scene);
+        var commonMaterialOptions = [{
+            text : 'Common materials'
+        }, {
+            text : 'Color',
+            onselect : function() {
+                toggleRectangleVisibility();
+                applyColorMaterial(rectangle, scene);
                 Sandcastle.highlight(applyColorMaterial);
             }
-        }));
-
-        baseMaterialMenu.addChild(new MenuItem({
-            label: 'Diffuse',
-            onClick: function() {
-                togglePolygonVisibility();
-                applyDiffuseMaterial(polygon, scene);
-                Sandcastle.highlight(applyDiffuseMaterial);
-            }
-        }));
-
-        proceduralTextureMenu.addChild(new MenuItem({
-            label: 'Dot',
-            onClick: function() {
-                togglePolygonVisibility();
-                applyDotMaterial(polygon, scene);
-                Sandcastle.highlight(applyDotMaterial);
-            }
-        }));
-
-        baseMaterialMenu.addChild(new MenuItem({
-            label: 'Emission Map',
-            onClick: function() {
-                togglePolygonVisibility();
-                applyEmissionMapMaterial(polygon, scene);
-                Sandcastle.highlight(applyEmissionMapMaterial);
-            }
-        }));
-
-        proceduralTextureMenu.addChild(new MenuItem({
-            label: 'Facet',
-            onClick: function() {
-                togglePolygonVisibility();
-                applyFacetMaterial(polygon, scene);
-                Sandcastle.highlight(applyFacetMaterial);
-            }
-        }));
-
-        baseMaterialMenu.addChild(new MenuItem({
-            label: 'Fresnel',
-            onClick: function() {
-                toggleWorldPolygonVisibility();
-                applyFresnelMaterial(worldPolygon, scene);
-                Sandcastle.highlight(applyFresnelMaterial);
-            }
-        }));
-
-        proceduralTextureMenu.addChild(new MenuItem({
-            label: 'Grass',
-            onClick: function() {
-                togglePolygonVisibility();
-                applyGrassMaterial(polygon, scene);
-                Sandcastle.highlight(applyGrassMaterial);
-            }
-        }));
-
-        proceduralTextureMenu.addChild(new MenuItem({
-            label: 'Grid',
-            onClick: function() {
-                togglePolygonVisibility(polygon, worldPolygon);
-                applyGridMaterial(polygon, scene);
-                Sandcastle.highlight(applyGridMaterial);
-            }
-        }));
-
-        commonMaterialMenu.addChild(new MenuItem({
-            label: 'Image',
-            onClick: function() {
-                togglePolygonVisibility();
-                applyImageMaterial(polygon, scene);
+        }, {
+            text : 'Image',
+            onselect : function() {
+                toggleRectangleVisibility();
+                applyImageMaterial(rectangle, scene);
                 Sandcastle.highlight(applyImageMaterial);
             }
-        }));
+        }];
 
-        baseMaterialMenu.addChild(new MenuItem({
-            label: 'Normal Map',
-            onClick: function() {
-                togglePolygonVisibility();
-                applyNormalMapMaterial(polygon, scene);
-                Sandcastle.highlight(applyNormalMapMaterial);
+        Sandcastle.addToolbarMenu(commonMaterialOptions, function() {
+            selectMenuOption(this, commonMaterialOptions);
+        });
+
+        var proceduralTextureOptions = [{
+            text : 'Procedural textures'
+        }, {
+            text : 'Checkerboard',
+            onselect : function() {
+                toggleRectangleVisibility();
+                applyCheckerboardMaterial(rectangle, scene);
+                Sandcastle.highlight(applyCheckerboardMaterial);
             }
-        }));
-
-        baseMaterialMenu.addChild(new MenuItem({
-            label: 'Reflection',
-            onClick: function() {
-                toggleWorldPolygonVisibility();
-                applyReflectionMaterial(worldPolygon, scene);
-                Sandcastle.highlight(applyReflectionMaterial);
+        }, {
+            text : 'Dot',
+            onselect : function() {
+                toggleRectangleVisibility();
+                applyDotMaterial(rectangle, scene);
+                Sandcastle.highlight(applyDotMaterial);
             }
-        }));
-
-        baseMaterialMenu.addChild(new MenuItem({
-            label: 'Refraction',
-            onClick: function() {
-                toggleWorldPolygonVisibility();
-                applyRefractionMaterial(worldPolygon, scene);
-                Sandcastle.highlight(applyRefractionMaterial);
+        }, {
+            text : 'Grid',
+            onselect : function() {
+                toggleRectangleVisibility(rectangle, worldRectangle);
+                applyGridMaterial(rectangle, scene);
+                Sandcastle.highlight(applyGridMaterial);
             }
-        }));
-
-        baseMaterialMenu.addChild(new MenuItem({
-            label: 'Specular Map',
-            onClick: function() {
-                togglePolygonVisibility();
-                applySpecularMapMaterial(polygon, scene);
-                Sandcastle.highlight(applySpecularMapMaterial);
-            }
-        }));
-
-        proceduralTextureMenu.addChild(new MenuItem({
-            label: 'Stripe',
-            onClick: function() {
-                togglePolygonVisibility();
-                applyStripeMaterial(polygon, scene);
+        }, {
+            text : 'Stripe',
+            onselect : function() {
+                toggleRectangleVisibility();
+                applyStripeMaterial(rectangle, scene);
                 Sandcastle.highlight(applyStripeMaterial);
             }
-        }));
+        }];
 
-        proceduralTextureMenu.addChild(new MenuItem({
-            label: 'TieDye',
-            onClick: function() {
-                togglePolygonVisibility();
-                applyTieDyeMaterial(polygon, scene);
-                Sandcastle.highlight(applyTieDyeMaterial);
+        Sandcastle.addToolbarMenu(proceduralTextureOptions, function() {
+            selectMenuOption(this, proceduralTextureOptions);
+        });
+
+        var baseMaterialOptions = [{
+            text : 'Base materials'
+        }, {
+            text : 'Alpha Map',
+            onselect : function() {
+                toggleRectangleVisibility();
+                applyAlphaMapMaterial(rectangle, scene);
+                Sandcastle.highlight(applyAlphaMapMaterial);
             }
-        }));
-
-        proceduralTextureMenu.addChild(new MenuItem({
-            label: 'Wood',
-            onClick: function() {
-                togglePolygonVisibility();
-                applyWoodMaterial(polygon, scene);
-                Sandcastle.highlight(applyWoodMaterial);
+        }, {
+            text : 'Bump Map',
+            onselect : function() {
+                toggleRectangleVisibility();
+                applyBumpMapMaterial(rectangle, scene);
+                Sandcastle.highlight(applyBumpMapMaterial);
             }
-        }));
-
-        miscMaterialMenu.addChild(new MenuItem({
-            label: 'Water',
-            onClick: function() {
-                toggleWorldPolygonVisibility();
-                applyWaterMaterial(worldPolygon, scene);
-                Sandcastle.highlight(applyWaterMaterial);
+        }, {
+            text : 'Diffuse',
+            onselect : function() {
+                toggleRectangleVisibility();
+                applyDiffuseMaterial(rectangle, scene);
+                Sandcastle.highlight(applyDiffuseMaterial);
             }
-        }));
-
-        miscMaterialMenu.addChild(new MenuItem({
-            label: 'Erosion',
-            onClick: function() {
-                togglePolygonVisibility();
-                applyErosionMaterial(polygon, scene);
-                Sandcastle.highlight(applyErosionMaterial);
+        }, {
+            text : 'Emission Map',
+            onselect : function() {
+                toggleRectangleVisibility();
+                applyEmissionMapMaterial(rectangle, scene);
+                Sandcastle.highlight(applyEmissionMapMaterial);
             }
-        }));
+        }, {
+            text : 'Fresnel',
+            onselect : function() {
+                toggleWorldRectangleVisibility();
+                applyFresnelMaterial(worldRectangle, scene);
+                Sandcastle.highlight(applyFresnelMaterial);
+            }
+        }, {
+            text : 'Normal Map',
+            onselect : function() {
+                toggleRectangleVisibility();
+                applyNormalMapMaterial(rectangle, scene);
+                Sandcastle.highlight(applyNormalMapMaterial);
+            }
+        }, {
+            text : 'Reflection',
+            onselect : function() {
+                toggleWorldRectangleVisibility();
+                applyReflectionMaterial(worldRectangle, scene);
+                Sandcastle.highlight(applyReflectionMaterial);
+            }
+        }, {
+            text : 'Refraction',
+            onselect : function() {
+                toggleWorldRectangleVisibility();
+                applyRefractionMaterial(worldRectangle, scene);
+                Sandcastle.highlight(applyRefractionMaterial);
+            }
+        }, {
+            text : 'Specular Map',
+            onselect : function() {
+                toggleRectangleVisibility();
+                applySpecularMapMaterial(rectangle, scene);
+                Sandcastle.highlight(applySpecularMapMaterial);
+            }
+        }];
 
-        miscMaterialMenu.addChild(new MenuItem({
-            label: 'RimLighting',
-            onClick: function() {
-                toggleWorldPolygonVisibility();
-                applyRimLightingMaterial(worldPolygon, scene);
+        Sandcastle.addToolbarMenu(baseMaterialOptions, function() {
+            selectMenuOption(this, baseMaterialOptions);
+        });
+
+        var miscMaterialOptions = [{
+            text : 'Misc materials'
+        }, {
+            text : 'Rim Lighting',
+            onselect : function() {
+                toggleWorldRectangleVisibility();
+                applyRimLightingMaterial(worldRectangle, scene);
                 Sandcastle.highlight(applyRimLightingMaterial);
             }
-        }));
-        
-        polylineMaterialMenu.addChild(new MenuItem({
-            label: 'PolylineArrow',
-            onClick: function() {
+        }, {
+            text : 'Water',
+            onselect : function() {
+                toggleWorldRectangleVisibility();
+                applyWaterMaterial(worldRectangle, scene);
+                Sandcastle.highlight(applyWaterMaterial);
+            }
+        }];
+
+        Sandcastle.addToolbarMenu(miscMaterialOptions, function() {
+            selectMenuOption(this, miscMaterialOptions);
+        });
+
+        var compositeMaterialOptions = [{
+            text : 'Example composite materials'
+        }, {
+            text : 'Composite Example',
+            onselect : function() {
+                toggleWorldRectangleVisibility();
+                applyCompositeMaterial(worldRectangle, scene);
+                Sandcastle.highlight(applyCompositeMaterial);
+            }
+        }];
+
+        Sandcastle.addToolbarMenu(compositeMaterialOptions, function() {
+            selectMenuOption(this, compositeMaterialOptions);
+        });
+
+        var polylineMaterialOptions = [{
+            text : 'Polyline materials'
+        }, {
+            text : 'Polyline Arrow',
+            onselect : function() {
                 togglePolylineVisibility();
                 applyPolylineArrowMaterial(polyline, scene);
                 Sandcastle.highlight(applyPolylineArrowMaterial);
             }
-        }));
-        
-        polylineMaterialMenu.addChild(new MenuItem({
-            label: 'PolylineGlow',
-            onClick: function() {
+        }, {
+            text : 'Polyline Glow',
+            onselect : function() {
                 togglePolylineVisibility();
                 applyPolylineGlowMaterial(polyline, scene);
                 Sandcastle.highlight(applyPolylineGlowMaterial);
             }
-        }));
-
-        polylineMaterialMenu.addChild(new MenuItem({
-            label: 'PolylineOutline',
-            onClick: function() {
+        }, {
+            text : 'Polyline Outline',
+            onselect : function() {
                 togglePolylineVisibility();
                 applyPolylineOutlineMaterial(polyline, scene);
                 Sandcastle.highlight(applyPolylineOutlineMaterial);
             }
-        }));
+        }];
 
-        new DropDownButton({
-            label : 'Common materials',
-            dropDown: commonMaterialMenu,
-            maxHeight: -1
-        }).placeAt('toolbar');
-
-        new DropDownButton({
-            label : 'Procedural textures',
-            dropDown: proceduralTextureMenu,
-            maxHeight: -1
-        }).placeAt('toolbar');
-
-        new DropDownButton({
-            label : 'Base materials',
-            dropDown: baseMaterialMenu,
-            maxHeight: -1
-        }).placeAt('toolbar');
-
-        new DropDownButton({
-            label : 'Misc materials',
-            dropDown: miscMaterialMenu,
-            maxHeight: -1
-        }).placeAt('toolbar');
-
-        new DropDownButton({
-            label : 'Example composite materials',
-            dropDown: compositeMaterialMenu,
-            maxHeight: -1
-        }).placeAt('toolbar');
-
-        new DropDownButton({
-            label : 'Polyline materials',
-            dropDown : polylineMaterialMenu,
-            maxHeight : -1
-        }).placeAt('toolbar');
+        Sandcastle.addToolbarMenu(polylineMaterialOptions, function() {
+            selectMenuOption(this, polylineMaterialOptions);
+        });
     }
 
-    function createPrimitives(widget) {
-        var scene = widget.scene;
-        var primitives = scene.getPrimitives();
-        var ellipsoid = widget.centralBody.getEllipsoid();
+    function createPrimitives(scene) {
+        var primitives = scene.primitives;
 
-        polygon = new Cesium.Polygon();
-        polygon.configureExtent(new Cesium.Extent(
-            Cesium.Math.toRadians(-120.0),
-            Cesium.Math.toRadians(20.0),
-            Cesium.Math.toRadians(-60.0),
-            Cesium.Math.toRadians(40.0)));
-        primitives.add(polygon);
+        rectangle = new Cesium.RectanglePrimitive({
+            rectangle : Cesium.Rectangle.fromDegrees(-120.0, 20.0, -60.0, 40.0)
+        });
+        primitives.add(rectangle);
 
-        worldPolygon = new Cesium.Polygon();
-        worldPolygon.configureExtent(new Cesium.Extent(
-                Cesium.Math.toRadians(-180.0),
-                Cesium.Math.toRadians(-90.0),
-                Cesium.Math.toRadians(180.0),
-                Cesium.Math.toRadians(90.0)));
-        worldPolygon.show = false;
-        primitives.add(worldPolygon);
-        
+        worldRectangle = new Cesium.Polygon();
+        worldRectangle = new Cesium.RectanglePrimitive({
+            rectangle : Cesium.Rectangle.fromDegrees(-180.0, -90.0, 180.0, 90.0),
+            show : false
+        });
+        primitives.add(worldRectangle);
+
         var polylines = new Cesium.PolylineCollection();
         polyline = polylines.add({
-            positions : [
-                ellipsoid.cartographicToCartesian(Cesium.Cartographic.fromDegrees(-110.0, 42.0)),
-                ellipsoid.cartographicToCartesian(Cesium.Cartographic.fromDegrees( -85.0, 36.0)),
-                ellipsoid.cartographicToCartesian(Cesium.Cartographic.fromDegrees(-100.0, 25.0)),
-                ellipsoid.cartographicToCartesian(Cesium.Cartographic.fromDegrees( -77.0, 12.0))
-            ],
+            positions : Cesium.Cartesian3.fromDegreesArray([
+                -110.0, 42.0,
+                -85.0, 36.0,
+                -100.0, 25.0,
+                 -77.0, 12.0
+            ]),
             width : 10.0,
             show : false
         });
         primitives.add(polylines);
     }
 
-    var widget = new Cesium.CesiumWidget('cesiumContainer');
+    var viewer = new Cesium.Viewer('cesiumContainer');
+    var scene = viewer.scene;
 
-    createPrimitives(widget);
-    createButtons(widget);
+    createPrimitives(scene);
+    createButtons(scene);
 
     Sandcastle.finishedLoading();
 });

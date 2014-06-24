@@ -1,14 +1,20 @@
 /*global define*/
 define([
-        './DeveloperError',
         './binarySearch',
-        './TimeInterval',
-        './JulianDate'
-       ], function(
-         DeveloperError,
-         binarySearch,
-         TimeInterval,
-         JulianDate) {
+        './defined',
+        './defineProperties',
+        './DeveloperError',
+        './Event',
+        './JulianDate',
+        './TimeInterval'
+    ], function(
+        binarySearch,
+        defined,
+        defineProperties,
+        DeveloperError,
+        Event,
+        JulianDate,
+        TimeInterval) {
     "use strict";
 
     function compareIntervalStartTimes(left, right) {
@@ -23,90 +29,134 @@ define([
      *
      * @see TimeInterval
      * @see JulianDate
-     *
      */
     var TimeIntervalCollection = function() {
         this._intervals = [];
+        this._intervalsChanged =  new Event();
+    };
+
+    defineProperties(TimeIntervalCollection.prototype, {
+        /**
+         * Gets an event that is raised whenever the collection of intervals change.
+         * @memberof TimeIntervalCollection.prototype
+         * @type {Event}
+         */
+        changedEvent : {
+            get : function() {
+                return this._intervalsChanged;
+            }
+        },
+
+        /**
+         * Gets the start date of the collection.
+         * @memberof TimeIntervalCollection.prototype
+         * @type {JulianDate}
+         */
+        start : {
+            get : function() {
+                var thisIntervals = this._intervals;
+                return thisIntervals.length === 0 ? undefined : thisIntervals[0].start;
+            }
+        },
+
+        /**
+         * Gets the stop date of the collection.
+         * @memberof TimeIntervalCollection.prototype
+         * @type {JulianDate}
+         */
+        stop : {
+            get : function() {
+                var thisIntervals = this._intervals;
+                var length = thisIntervals.length;
+                return length === 0 ? undefined : thisIntervals[length - 1].stop;
+            }
+        },
+
+        /**
+         * Gets the number of intervals in the collection.
+         * @memberof TimeIntervalCollection.prototype
+         * @type {Number}
+         */
+        length : {
+            get : function() {
+                return this._intervals.length;
+            }
+        },
+
+        /**
+         * Returns true if the collection is empty, false otherwise.
+         * @memberof TimeIntervalCollection.prototype
+         * @type {Boolean}
+         */
+        empty : {
+            get : function() {
+                return this._intervals.length === 0;
+            }
+        }
+    });
+
+
+    /**
+     * Compares the provided TimeIntervalCollections and returns
+     * <code>true</code> if they are equal, <code>false</code> otherwise.
+     *
+     * @param {TimeInterval} [right] The right hand side collection.
+     * @param {Function} [dataComparer] A function which compares the data for each interval in the collection.  If ommitted, reference equality is used.
+     * @returns {Boolean} <code>true</code> if left and right are equal, <code>false</code> otherwise.
+     */
+    TimeIntervalCollection.prototype.equals = function(right, dataComparer) {
+        if (this === right) {
+            return true;
+        }
+        if (!(right instanceof TimeIntervalCollection)) {
+            return false;
+        }
+        var intervals = this._intervals;
+        var rightIntervals = right._intervals;
+        var length = intervals.length;
+        if (length !== rightIntervals.length) {
+            return false;
+        }
+        for ( var i = 0; i < length; i++) {
+            if (!TimeInterval.equals(intervals[i], rightIntervals[i], dataComparer)) {
+                return false;
+            }
+        }
+        return true;
     };
 
     /**
      * Gets the interval at the specified index.
      *
-     * @memberof TimeIntervalCollection
      * @param {Number} index The index of the interval to retrieve.
-     * @return {TimeInterval} The TimeInterval at the specified index, or undefined if no such index exists.
+     * @returns {TimeInterval} The TimeInterval at the specified index, or undefined if no such index exists.
      * @exception {DeveloperError} index must be a number.
      */
     TimeIntervalCollection.prototype.get = function(index) {
+        //>>includeStart('debug', pragmas.debug);
         if (isNaN(index)) {
             throw new DeveloperError('index must be a number.');
         }
+        //>>includeEnd('debug');
+
         return this._intervals[index];
     };
 
     /**
-     * Gets the start date of the collection.
-     *
-     * @memberof TimeIntervalCollection
-     * @return {JulianDate} The start date of the collection or undefined if the collection is empty.
+     * Removes all intervals from the collection.
      */
-    TimeIntervalCollection.prototype.getStart = function() {
-        var thisIntervals = this._intervals;
-        return thisIntervals.length === 0 ? undefined : thisIntervals[0].start;
-    };
-
-    /**
-     * Gets the stop date of the collection.
-     *
-     * @memberof TimeIntervalCollection
-     * @return {JulianDate} The stop date of the collection or undefined if the collection is empty.
-     */
-    TimeIntervalCollection.prototype.getStop = function() {
-        var thisIntervals = this._intervals;
-        var length = thisIntervals.length;
-        return length === 0 ? undefined : thisIntervals[length - 1].stop;
-    };
-
-    /**
-     * Gets the number of intervals in the collection.
-     *
-     * @memberof TimeIntervalCollection
-     * @return {Number} The number of intervals in the collection.
-     */
-    TimeIntervalCollection.prototype.getLength = function() {
-        return this._intervals.length;
-    };
-
-    /**
-     * Clears the collection.
-     *
-     * @memberof TimeIntervalCollection
-     */
-    TimeIntervalCollection.prototype.clear = function() {
-        this._intervals = [];
-    };
-
-    /**
-     * Returns true if the collection is empty, false otherwise.
-     *
-     * @memberof TimeIntervalCollection
-     *
-     * @returns true if the collection is empty, false otherwise.
-     */
-    TimeIntervalCollection.prototype.isEmpty = function() {
-        return this._intervals.length === 0;
+    TimeIntervalCollection.prototype.removeAll = function() {
+        if (this._intervals.length > 0) {
+            this._intervals.length = 0;
+            this._intervalsChanged.raiseEvent(this);
+        }
     };
 
     /**
      * Returns the interval which contains the specified date.
      *
      * @param {JulianDate} date The date to search for.
-     *
-     * @memberof TimeIntervalCollection
-     *
      * @returns The interval containing the specified date, undefined if no such interval exists.
-     *
-     * @exception {DeveloperError} date is required.
      */
     TimeIntervalCollection.prototype.findIntervalContainingDate = function(date) {
         var index = this.indexOf(date);
@@ -114,15 +164,21 @@ define([
     };
 
     /**
+     * Returns the data for the interval which contains the specified date.
+     *
+     * @param {JulianDate} date The date to search for.
+     * @returns The data for the interval containing the specified date, or undefined if no such interval exists.
+     */
+    TimeIntervalCollection.prototype.findDataForIntervalContainingDate = function(date) {
+        var index = this.indexOf(date);
+        return index >= 0 ? this._intervals[index].data : undefined;
+    };
+
+    /**
      * Returns true if the specified date is contained in the interval collection.
      *
      * @param {JulianDate} date The date to search for.
-     *
-     * @memberof TimeIntervalCollection
-     *
      * @returns True if the specified date is contained in the interval collection, undefined otherwise.
-     *
-     * @exception {DeveloperError} date is required.
      */
     TimeIntervalCollection.prototype.contains = function(date) {
         return this.indexOf(date) >= 0;
@@ -132,20 +188,18 @@ define([
      * Returns the index of the interval in the collection that contains the specified date.
      *
      * @param {JulianDate} date The date to search for.
-     *
-     * @memberof TimeIntervalCollection
-     *
      * @returns The index of the interval which contains the specified date, if no such interval exists,
      * it returns a negative number which is the bitwise complement of the index of the next interval that
      * starts after the date, or if no interval starts after the specified date, the bitwise complement of
      * the length of the collection.
-     *
-     * @exception {DeveloperError} date is required.
      */
     TimeIntervalCollection.prototype.indexOf = function(date) {
-        if (typeof date === 'undefined') {
+        //>>includeStart('debug', pragmas.debug);
+        if (!defined(date)) {
             throw new DeveloperError('date required');
         }
+        //>>includeEnd('debug');
+
         var thisIntervals = this._intervals;
         var index = binarySearch(thisIntervals, new TimeInterval(date, date, true, true), compareIntervalStartTimes);
         if (index >= 0) {
@@ -176,19 +230,16 @@ define([
      * @param {JulianDate} [stop] The end of the interval.
      * @param {JulianDate} [isStartIncluded] True if the start date is included.
      * @param {JulianDate} [isStopIncluded] True if the stop date is included.
-     *
-     * @memberof TimeIntervalCollection
-     *
      * @returns The first interval in the collection that matches the specified parameters.
      */
     TimeIntervalCollection.prototype.findInterval = function(start, stop, isStartIncluded, isStopIncluded) {
         var thisIntervals = this._intervals, interval;
         for ( var i = 0, len = thisIntervals.length; i < len; i++) {
             interval = thisIntervals[i];
-            if ((typeof start === 'undefined' || interval.start.equals(start)) &&
-                (typeof stop === 'undefined' || interval.stop.equals(stop)) &&
-                (typeof isStartIncluded === 'undefined' || interval.isStartIncluded === isStartIncluded) &&
-                (typeof isStopIncluded === 'undefined' || interval.isStopIncluded === isStopIncluded)) {
+            if ((!defined(start) || interval.start.equals(start)) &&
+                (!defined(stop) || interval.stop.equals(stop)) &&
+                (!defined(isStartIncluded) || interval.isStartIncluded === isStartIncluded) &&
+                (!defined(isStopIncluded) || interval.isStopIncluded === isStopIncluded)) {
                 return thisIntervals[i];
             }
         }
@@ -204,23 +255,23 @@ define([
      * @param {Function} [equalsCallback] An optional function which takes the data from two
      * TimeIntervals and returns true if they are equal, false otherwise.  If this function
      * is not provided, the Javascript equality operator is used.
-     *
-     * @memberof TimeIntervalCollection
-     *
-     * @exception {DeveloperError} interval is required.
      */
     TimeIntervalCollection.prototype.addInterval = function(interval, equalsCallback) {
-        if (typeof interval === 'undefined') {
+        //>>includeStart('debug', pragmas.debug);
+        if (!defined(interval)) {
             throw new DeveloperError("interval is required");
         }
+        //>>includeEnd('debug');
+
         if (!interval.isEmpty) {
             var comparison, index;
             var thisIntervals = this._intervals;
 
             // Handle the common case quickly: we're adding a new interval which is after all existing intervals.
             if (thisIntervals.length === 0 ||
-                interval.start.greaterThan(thisIntervals[thisIntervals.length - 1].stop)) {
+                JulianDate.greaterThan(interval.start, thisIntervals[thisIntervals.length - 1].stop)) {
                 thisIntervals.push(interval);
+                this._intervalsChanged.raiseEvent(this);
                 return;
             }
 
@@ -253,9 +304,9 @@ define([
                 comparison = JulianDate.compare(thisIntervals[index - 1].stop, interval.start);
                 if (comparison > 0 || (comparison === 0 && (thisIntervals[index - 1].isStopIncluded || interval.isStartIncluded))) {
                     // There is an overlap
-                    if (typeof equalsCallback !== 'undefined' ? equalsCallback(thisIntervals[index - 1].data, interval.data) : (thisIntervals[index - 1].data === interval.data)) {
+                    if (defined(equalsCallback) ? equalsCallback(thisIntervals[index - 1].data, interval.data) : (thisIntervals[index - 1].data === interval.data)) {
                         // Overlapping intervals have the same data, so combine them
-                        if (interval.stop.greaterThan(thisIntervals[index - 1].stop)) {
+                        if (JulianDate.greaterThan(interval.stop, thisIntervals[index - 1].stop)) {
                             interval = new TimeInterval(thisIntervals[index - 1].start,
                                                         interval.stop,
                                                         thisIntervals[index - 1].isStartIncluded,
@@ -304,12 +355,12 @@ define([
                 if (comparison > 0 ||
                     (comparison === 0 && (interval.isStopIncluded || thisIntervals[index].isStartIncluded))) {
                     // There is an overlap
-                    if (typeof equalsCallback !== 'undefined' ? equalsCallback(thisIntervals[index].data, interval.data) : thisIntervals[index].data === interval.data) {
+                    if (defined(equalsCallback) ? equalsCallback(thisIntervals[index].data, interval.data) : thisIntervals[index].data === interval.data) {
                         // Overlapping intervals have the same data, so combine them
                         interval = new TimeInterval(interval.start,
-                                                    thisIntervals[index].stop.greaterThan(interval.stop) ? thisIntervals[index].stop : interval.stop,
+                                                    JulianDate.greaterThan(thisIntervals[index].stop, interval.stop) ? thisIntervals[index].stop : interval.stop,
                                                     interval.isStartIncluded,
-                                                    thisIntervals[index].stop.greaterThan(interval.stop) ? thisIntervals[index].isStopIncluded : interval.isStopIncluded,
+                                                    JulianDate.greaterThan(thisIntervals[index].stop, interval.stop) ? thisIntervals[index].isStopIncluded : interval.isStopIncluded,
                                                     interval.data);
                         thisIntervals.splice(index, 1);
                     } else {
@@ -336,6 +387,7 @@ define([
 
             // Add the new interval
             thisIntervals.splice(index, 0, interval);
+            this._intervalsChanged.raiseEvent(this);
         }
     };
 
@@ -344,17 +396,14 @@ define([
      * The Data property of the input interval is ignored.
      *
      * @param {TimeInterval} interval The interval to remove.
-     *
-     * @memberof TimeIntervalCollection
-     *
      * @returns true if the interval was removed, false if no part of the interval was in the collection.
-     *
-     * @exception {DeveloperError} interval is required.
      */
     TimeIntervalCollection.prototype.removeInterval = function(interval) {
-        if (typeof interval === 'undefined') {
+        //>>includeStart('debug', pragmas.debug);
+        if (!defined(interval)) {
             throw new DeveloperError("interval is required");
         }
+        //>>includeEnd('debug');
 
         if (interval.isEmpty) {
             return false;
@@ -377,12 +426,12 @@ define([
         if (index > 0) {
             var indexMinus1 = thisIntervals[index - 1];
             var indexMinus1Stop = indexMinus1.stop;
-            if (indexMinus1Stop.greaterThan(intervalStart) ||
+            if (JulianDate.greaterThan(indexMinus1Stop, intervalStart) ||
                 (indexMinus1Stop.equals(intervalStart) &&
                  indexMinus1.isStopIncluded && intervalIsStartIncluded)) {
                 result = true;
 
-                if (indexMinus1Stop.greaterThan(intervalStop) ||
+                if (JulianDate.greaterThan(indexMinus1Stop, intervalStop) ||
                     (indexMinus1.isStopIncluded && !intervalIsStopIncluded && indexMinus1Stop.equals(intervalStop))) {
                     // Break the existing interval into two pieces
                     thisIntervals.splice(index, 0, new TimeInterval(intervalStop, indexMinus1Stop, !intervalIsStopIncluded, indexMinus1.isStopIncluded, indexMinus1.data));
@@ -407,7 +456,7 @@ define([
 
         // Remove any intervals that are completely overlapped by the input interval.
         while (index < thisIntervals.length &&
-                intervalStop.greaterThan(indexInterval.stop)) {
+                JulianDate.greaterThan(intervalStop, indexInterval.stop)) {
             result = true;
             thisIntervals.splice(index, 1);
         }
@@ -435,12 +484,16 @@ define([
 
         // Truncate any partially-overlapped intervals.
         if (index < thisIntervals.length &&
-            (intervalStop.greaterThan(indexInterval.start) ||
+            (JulianDate.greaterThan(intervalStop, indexInterval.start) ||
              (intervalStop.equals(indexInterval.start) &&
               intervalIsStopIncluded &&
               indexInterval.isStartIncluded))) {
             result = true;
             thisIntervals[index] = new TimeInterval(intervalStop, indexInterval.stop, !intervalIsStopIncluded, indexInterval.isStopIncluded, indexInterval.data);
+        }
+
+        if (result) {
+            this._intervalsChanged.raiseEvent(this);
         }
 
         return result;
@@ -457,18 +510,16 @@ define([
      * @param {Function} [mergeCallback] An optional function which takes the data from two
      * TimeIntervals and returns a merged version of the data.  If this parameter is omitted,
      * the interval data from <code>this</code> collection will be used.
-     *
      * @returns A new TimeIntervalCollection which is the intersection of this collection and the provided collection.
-     *
-     * @memberof TimeIntervalCollection
-     *
-     * @exception {DeveloperError} timeIntervalCollection is required.
      */
     TimeIntervalCollection.prototype.intersect = function(timeIntervalCollection, equalsCallback, mergeCallback) {
-        if (typeof timeIntervalCollection === 'undefined') {
+        //>>includeStart('debug', pragmas.debug);
+        if (!defined(timeIntervalCollection)) {
             throw new DeveloperError('timeIntervalCollection is required.');
         }
-        return this._intersectInternal(timeIntervalCollection, equalsCallback, mergeCallback);
+        //>>includeEnd('debug');
+
+        return intersectInternal(this, timeIntervalCollection, equalsCallback, mergeCallback);
     };
 
     /**
@@ -482,41 +533,39 @@ define([
      * @param {Function} [mergeCallback] An optional function which takes the data from two
      * TimeIntervals and returns a merged version of the data.  If this parameter is omitted,
      * the interval data from <code>this</code> collection will be used.
-     *
      * @returns A new TimeIntervalCollection which is the intersection of this collection and the provided collection.
-     *
-     * @memberof TimeIntervalCollection
-     *
-     * @exception {DeveloperError} timeIntervalCollection is required.
      */
     TimeIntervalCollection.prototype.intersectInterval = function(interval, equalsCallback, mergeCallback) {
-        if (typeof interval === 'undefined') {
+        //>>includeStart('debug', pragmas.debug);
+        if (!defined(interval)) {
             throw new DeveloperError('interval is required.');
         }
+        //>>includeEnd('debug');
+
         var intervals = new TimeIntervalCollection();
         intervals.addInterval(interval);
-        return this._intersectInternal(intervals, equalsCallback, mergeCallback);
+        return intersectInternal(this, intervals, equalsCallback, mergeCallback);
     };
 
-    TimeIntervalCollection.prototype._intersectInternal = function(intervals, equalsCallback, mergeCallback) {
+    function intersectInternal(timeIntervalCollection, intervals, equalsCallback, mergeCallback) {
         var left = 0;
         var right = 0;
         var result = new TimeIntervalCollection();
-        var thisIntervals = this._intervals;
+        var thisIntervals = timeIntervalCollection._intervals;
         var otherIntervals = intervals._intervals;
 
         while (left < thisIntervals.length && right < otherIntervals.length) {
             var leftInterval = thisIntervals[left];
             var rightInterval = otherIntervals[right];
-            if (leftInterval.stop.lessThan(rightInterval.start)) {
+            if (JulianDate.lessThan(leftInterval.stop, rightInterval.start)) {
                 ++left;
-            } else if (rightInterval.stop.lessThan(leftInterval.start)) {
+            } else if (JulianDate.lessThan(rightInterval.stop, leftInterval.start)) {
                 ++right;
             } else {
                 // The following will return an intersection whose data is 'merged' if the callback is defined
-                if (typeof mergeCallback !== 'undefined' ||
-                   ((typeof equalsCallback !== 'undefined' && equalsCallback(leftInterval, rightInterval)) ||
-                    (typeof equalsCallback === 'undefined' && rightInterval.data === leftInterval.data))) {
+                if (defined(mergeCallback) ||
+                   ((defined(equalsCallback) && equalsCallback(leftInterval, rightInterval)) ||
+                    (!defined(equalsCallback) && rightInterval.data === leftInterval.data))) {
 
                     var intersection = leftInterval.intersect(rightInterval, mergeCallback);
                     if (!intersection.isEmpty) {
@@ -526,7 +575,7 @@ define([
                     }
                 }
 
-                if (leftInterval.stop.lessThan(rightInterval.stop) ||
+                if (JulianDate.lessThan(leftInterval.stop, rightInterval.stop) ||
                     (leftInterval.stop.equals(rightInterval.stop) &&
                      !leftInterval.isStopIncluded &&
                      rightInterval.isStopIncluded)) {
@@ -537,7 +586,7 @@ define([
             }
         }
         return result;
-    };
+    }
 
     return TimeIntervalCollection;
 });

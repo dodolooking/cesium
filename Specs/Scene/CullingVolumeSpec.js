@@ -1,18 +1,18 @@
 /*global defineSuite*/
 defineSuite([
-             'Scene/CullingVolume',
-             'Core/AxisAlignedBoundingBox',
-             'Core/BoundingSphere',
-             'Core/Cartesian3',
-             'Core/Intersect',
-             'Scene/PerspectiveFrustum'
-        ], function(
-                CullingVolume,
-                AxisAlignedBoundingBox,
-                BoundingSphere,
-                Cartesian3,
-                Intersect,
-                PerspectiveFrustum) {
+        'Scene/CullingVolume',
+        'Core/AxisAlignedBoundingBox',
+        'Core/BoundingSphere',
+        'Core/Cartesian3',
+        'Core/Intersect',
+        'Scene/PerspectiveFrustum'
+    ], function(
+        CullingVolume,
+        AxisAlignedBoundingBox,
+        BoundingSphere,
+        Cartesian3,
+        Intersect,
+        PerspectiveFrustum) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
 
@@ -24,13 +24,13 @@ defineSuite([
         frustum.far = 2.0;
         frustum.fovy = (Math.PI) / 3;
         frustum.aspectRatio = 1.0;
-        cullingVolume = frustum.computeCullingVolume(new Cartesian3(), Cartesian3.UNIT_Z.negate(), Cartesian3.UNIT_Y);
+        cullingVolume = frustum.computeCullingVolume(new Cartesian3(), Cartesian3.negate(Cartesian3.UNIT_Z, new Cartesian3()), Cartesian3.UNIT_Y);
     });
 
     it('getVisibility throws without a bounding volume', function() {
         expect(function() {
             return new CullingVolume().getVisibility();
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     describe('box intersections', function() {

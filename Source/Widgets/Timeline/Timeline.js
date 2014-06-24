@@ -1,18 +1,22 @@
 /*global define*/
 define([
-        './TimelineTrack',
-        './TimelineHighlightRange',
-        '../../Core/DeveloperError',
-        '../../Core/Clock',
         '../../Core/ClockRange',
-        '../../Core/JulianDate'
-    ], function (
-         TimelineTrack,
-         TimelineHighlightRange,
-         DeveloperError,
-         Clock,
-         ClockRange,
-         JulianDate) {
+        '../../Core/defined',
+        '../../Core/destroyObject',
+        '../../Core/DeveloperError',
+        '../../Core/JulianDate',
+        '../getElement',
+        './TimelineHighlightRange',
+        './TimelineTrack'
+    ], function(
+        ClockRange,
+        defined,
+        destroyObject,
+        DeveloperError,
+        JulianDate,
+        getElement,
+        TimelineHighlightRange,
+        TimelineTrack) {
     "use strict";
 
     var timelineWheelDelta = 1e12;
@@ -70,28 +74,27 @@ define([
     var timelineMonthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
     function Timeline(container, clock) {
-        if (typeof container === 'undefined') {
+        //>>includeStart('debug', pragmas.debug);
+        if (!defined(container)) {
             throw new DeveloperError('container is required.');
         }
-
-        if (typeof container === 'string') {
-            var tmp = document.getElementById(container);
-            if (tmp === null) {
-                throw new DeveloperError('Element with id "' + container + '" does not exist in the document.');
-            }
-            container = tmp;
-        }
-
-        if (typeof clock === 'undefined') {
+        if (!defined(clock)) {
             throw new DeveloperError('clock is required.');
         }
+        //>>includeEnd('debug');
+
+        container = getElement(container);
 
         /**
          * Gets the parent container.
-         * @memberof Timeline
          * @type {Element}
          */
         this.container = container;
+
+        var topDiv = document.createElement('div');
+        topDiv.className = 'cesium-timeline-main';
+        container.appendChild(topDiv);
+        this._topDiv = topDiv;
 
         this._endJulian = undefined;
         this._epochJulian = undefined;
@@ -111,17 +114,17 @@ define([
         this._mouseX = 0;
         this._timelineDrag = 0;
         this._timelineDragLocation = undefined;
-        var widget = this;
+        this._lastHeight = undefined;
+        this._lastWidth = undefined;
 
-        this.container.className += ' cesium-timeline-main';
-        this.container.innerHTML = '<div class="cesium-timeline-bar"></div><div class="cesium-timeline-trackContainer">' +
+        this._topDiv.innerHTML = '<div class="cesium-timeline-bar"></div><div class="cesium-timeline-trackContainer">' +
                                      '<canvas class="cesium-timeline-tracks" width="10" height="1">' +
                                      '</canvas></div><div class="cesium-timeline-needle"></div><span class="cesium-timeline-ruler"></span>';
-        this._timeBarEle = this.container.childNodes[0];
-        this._trackContainer = this.container.childNodes[1];
-        this._trackListEle = this.container.childNodes[1].childNodes[0];
-        this._needleEle = this.container.childNodes[2];
-        this._rulerEle = this.container.childNodes[3];
+        this._timeBarEle = this._topDiv.childNodes[0];
+        this._trackContainer = this._topDiv.childNodes[1];
+        this._trackListEle = this._topDiv.childNodes[1].childNodes[0];
+        this._needleEle = this._topDiv.childNodes[2];
+        this._rulerEle = this._topDiv.childNodes[3];
         this._context = this._trackListEle.getContext('2d');
 
         this._trackList = [];
@@ -129,65 +132,85 @@ define([
 
         this.zoomTo(clock.startTime, clock.stopTime);
 
-        this._timeBarEle.addEventListener('mousedown', function(e) {
-            widget._handleMouseDown(e);
-        }, false);
-        document.addEventListener('mouseup', function(e) {
-            widget._handleMouseUp(e);
-        }, false);
-        document.addEventListener('mousemove', function(e) {
-            widget._handleMouseMove(e);
-        }, false);
-        this._timeBarEle.addEventListener('DOMMouseScroll', function(e) {
-            widget._handleMouseWheel(e);
-        }, false); // Mozilla mouse wheel
-        this._timeBarEle.addEventListener('mousewheel', function(e) {
-            widget._handleMouseWheel(e);
-        }, false);
-        this._timeBarEle.addEventListener('touchstart', function(e) {
-            widget._handleTouchStart(e);
-        }, false);
-        document.addEventListener('touchmove', function(e) {
-            widget._handleTouchMove(e);
-        }, false);
-        document.addEventListener('touchend', function(e) {
-            widget._handleTouchEnd(e);
-        }, false);
-        this.container.oncontextmenu = function() {
+        this._onMouseDown = createMouseDownCallback(this);
+        this._onMouseUp = createMouseUpCallback(this);
+        this._onMouseMove = createMouseMoveCallback(this);
+        this._onMouseWheel = createMouseWheelCallback(this);
+        this._onTouchStart = createTouchStartCallback(this);
+        this._onTouchMove = createTouchMoveCallback(this);
+        this._onTouchEnd = createTouchEndCallback(this);
+
+        var timeBarEle = this._timeBarEle;
+        document.addEventListener('mouseup', this._onMouseUp, false);
+        document.addEventListener('mousemove', this._onMouseMove, false);
+        timeBarEle.addEventListener('mousedown', this._onMouseDown, false);
+        timeBarEle.addEventListener('DOMMouseScroll', this._onMouseWheel, false); // Mozilla mouse wheel
+        timeBarEle.addEventListener('mousewheel', this._onMouseWheel, false);
+        timeBarEle.addEventListener('touchstart', this._onTouchStart, false);
+        timeBarEle.addEventListener('touchmove', this._onTouchMove, false);
+        timeBarEle.addEventListener('touchend', this._onTouchEnd, false);
+
+        this._topDiv.oncontextmenu = function() {
             return false;
-        };
-
-        window.addEventListener('resize', function() {
-            widget.handleResize();
-        }, false);
-
-        this.addEventListener = function(type, listener, useCapture) {
-            widget.container.addEventListener(type, listener, useCapture);
         };
 
         clock.onTick.addEventListener(this.updateFromClock, this);
         this.updateFromClock();
     }
 
-    Timeline.prototype.addHighlightRange = function(color, heightInPx) {
-        var newHighlightRange = new TimelineHighlightRange(color, heightInPx);
+    Timeline.prototype.addEventListener = function(type, listener, useCapture) {
+        this._topDiv.addEventListener(type, listener, useCapture);
+    };
+
+    Timeline.prototype.removeEventListener = function(type, listener, useCapture) {
+        this._topDiv.removeEventListener(type, listener, useCapture);
+    };
+
+    Timeline.prototype.isDestroyed = function() {
+        return false;
+    };
+
+    Timeline.prototype.destroy = function() {
+        this._clock.onTick.removeEventListener(this.updateFromClock, this);
+
+        document.removeEventListener('mouseup', this._onMouseUp, false);
+        document.removeEventListener('mousemove', this._onMouseMove, false);
+
+        var timeBarEle = this._timeBarEle;
+        timeBarEle.removeEventListener('mousedown', this._onMouseDown, false);
+        timeBarEle.removeEventListener('DOMMouseScroll', this._onMouseWheel, false); // Mozilla mouse wheel
+        timeBarEle.removeEventListener('mousewheel', this._onMouseWheel, false);
+        timeBarEle.removeEventListener('touchstart', this._onTouchStart, false);
+        timeBarEle.removeEventListener('touchmove', this._onTouchMove, false);
+        timeBarEle.removeEventListener('touchend', this._onTouchEnd, false);
+        this.container.removeChild(this._topDiv);
+        destroyObject(this);
+    };
+
+    Timeline.prototype.addHighlightRange = function(color, heightInPx, base) {
+        var newHighlightRange = new TimelineHighlightRange(color, heightInPx, base);
         this._highlightRanges.push(newHighlightRange);
-        this.handleResize();
+        this.resize();
         return newHighlightRange;
     };
 
     Timeline.prototype.addTrack = function(interval, heightInPx, color, backgroundColor) {
         var newTrack = new TimelineTrack(interval, heightInPx, color, backgroundColor);
         this._trackList.push(newTrack);
-        this.handleResize();
+        this._lastHeight = undefined;
+        this.resize();
         return newTrack;
     };
 
     Timeline.prototype.zoomTo = function(startJulianDate, endJulianDate) {
-        this._timeBarSecondsSpan = startJulianDate.getSecondsDifference(endJulianDate);
+        this._timeBarSecondsSpan = JulianDate.getSecondsDifference(endJulianDate, startJulianDate);
+
+        //>>includeStart('debug', pragmas.debug);
         if (this._timeBarSecondsSpan <= 0) {
             throw new DeveloperError('Start time must come before end time.');
         }
+        //>>includeEnd('debug');
+
         this._startJulian = startJulianDate;
         this._endJulian = endJulianDate;
 
@@ -195,9 +218,9 @@ define([
         if (this._clock && (this._clock.clockRange !== ClockRange.UNBOUNDED)) {
             var clockStart = this._clock.startTime;
             var clockEnd = this._clock.stopTime;
-            var clockSpan = clockStart.getSecondsDifference(clockEnd);
-            var startOffset = this._startJulian.getSecondsDifference(clockStart);
-            var endOffset = this._endJulian.getSecondsDifference(clockEnd);
+            var clockSpan = JulianDate.getSecondsDifference(clockEnd, clockStart);
+            var startOffset = JulianDate.getSecondsDifference(clockStart, this._startJulian);
+            var endOffset = JulianDate.getSecondsDifference(clockEnd, this._endJulian);
 
             if (this._timeBarSecondsSpan >= clockSpan) {
                 // if new duration longer than clock range duration, clamp to full range.
@@ -206,18 +229,18 @@ define([
                 this._endJulian = this._clock.stopTime;
             } else if (startOffset > 0) {
                 // if timeline start is before clock start, shift right
-                this._endJulian = this._endJulian.addSeconds(startOffset);
+                this._endJulian = JulianDate.addSeconds(this._endJulian, startOffset, new JulianDate());
                 this._startJulian = clockStart;
-                this._timeBarSecondsSpan = this._startJulian.getSecondsDifference(this._endJulian);
+                this._timeBarSecondsSpan = JulianDate.getSecondsDifference(this._endJulian, this._startJulian);
             } else if (endOffset < 0) {
                 // if timeline end is after clock end, shift left
-                this._startJulian = this._startJulian.addSeconds(endOffset);
+                this._startJulian = JulianDate.addSeconds(this._startJulian, endOffset, new JulianDate());
                 this._endJulian = clockEnd;
-                this._timeBarSecondsSpan = this._startJulian.getSecondsDifference(this._endJulian);
+                this._timeBarSecondsSpan = JulianDate.getSecondsDifference(this._endJulian, this._startJulian);
             }
         }
 
-        this.handleResize();
+        this._makeTics();
 
         var evt = document.createEvent('Event');
         evt.initEvent('setzoom', true, true);
@@ -226,18 +249,18 @@ define([
         evt.epochJulian = this._epochJulian;
         evt.totalSpan = this._timeBarSecondsSpan;
         evt.mainTicSpan = this._mainTicSpan;
-        this.container.dispatchEvent(evt);
+        this._topDiv.dispatchEvent(evt);
     };
 
     Timeline.prototype.zoomFrom = function(amount) {
-        var centerSec = this._startJulian.getSecondsDifference(this._scrubJulian);
+        var centerSec = JulianDate.getSecondsDifference(this._scrubJulian, this._startJulian);
         if ((amount > 1) || (centerSec < 0) || (centerSec > this._timeBarSecondsSpan)) {
             centerSec = this._timeBarSecondsSpan * 0.5;
         } else {
             centerSec += (centerSec - this._timeBarSecondsSpan * 0.5);
         }
         var centerSecFlip = this._timeBarSecondsSpan - centerSec;
-        this.zoomTo(this._startJulian.addSeconds(centerSec - (centerSec * amount)), this._endJulian.addSeconds((centerSecFlip * amount) - centerSecFlip));
+        this.zoomTo(JulianDate.addSeconds(this._startJulian, centerSec - (centerSec * amount), new JulianDate()), JulianDate.addSeconds(this._endJulian, (centerSecFlip * amount) - centerSecFlip, new JulianDate()));
     };
 
     function twoDigits(num) {
@@ -245,15 +268,8 @@ define([
     }
 
     Timeline.prototype.makeLabel = function(julianDate) {
-        var gregorian = julianDate.toGregorianDate();
-        var hour = gregorian.hour;
-        var ampm = (hour < 12) ? ' AM' : ' PM';
-        if (hour >= 13) {
-            hour -= 12;
-        } else if (hour === 0) {
-            hour = 12;
-        }
-        var millisecond = gregorian.millisecond, millisecondString = '';
+        var gregorian = JulianDate.toGregorianDate(julianDate);
+        var millisecond = gregorian.millisecond, millisecondString = ' UTC';
         if ((millisecond > 0) && (this._timeBarSecondsSpan < 3600)) {
             millisecondString = Math.floor(millisecond).toString();
             while (millisecondString.length < 3) {
@@ -262,8 +278,8 @@ define([
             millisecondString = '.' + millisecondString;
         }
 
-        return timelineMonthNames[gregorian.month - 1] + ' ' + gregorian.day + ' ' + gregorian.year + ' ' + twoDigits(hour) + ':' +
-            twoDigits(gregorian.minute) + ':' + twoDigits(gregorian.second) + millisecondString + ampm;
+        return timelineMonthNames[gregorian.month - 1] + ' ' + gregorian.day + ' ' + gregorian.year + ' ' + twoDigits(gregorian.hour) +
+            ':' + twoDigits(gregorian.minute) + ':' + twoDigits(gregorian.second) + millisecondString;
     };
 
     Timeline.prototype.smallestTicInPixels = 7.0;
@@ -271,14 +287,14 @@ define([
     Timeline.prototype._makeTics = function() {
         var timeBar = this._timeBarEle;
 
-        var seconds = this._startJulian.getSecondsDifference(this._scrubJulian);
-        var xPos = Math.round(seconds * this.container.clientWidth / this._timeBarSecondsSpan);
+        var seconds = JulianDate.getSecondsDifference(this._scrubJulian, this._startJulian);
+        var xPos = Math.round(seconds * this._topDiv.clientWidth / this._timeBarSecondsSpan);
         var scrubX = xPos - 8, tic;
         var widget = this;
 
         this._needleEle.style.left = xPos.toString() + 'px';
 
-        var tics = '<span class="cesium-timeline-icon16" style="left:' + scrubX + 'px;bottom:0;background-position: 0px 0px;"></span>';
+        var tics = '';
 
         var minimumDuration = 0.01;
         var maximumDuration = 31536000000.0; // ~1000 years
@@ -291,11 +307,11 @@ define([
         if (duration < minimumDuration) {
             duration = minimumDuration;
             this._timeBarSecondsSpan = minimumDuration;
-            this._endJulian = this._startJulian.addSeconds(minimumDuration);
+            this._endJulian = JulianDate.addSeconds(this._startJulian, minimumDuration, new JulianDate());
         } else if (duration > maximumDuration) {
             duration = maximumDuration;
             this._timeBarSecondsSpan = maximumDuration;
-            this._endJulian = this._startJulian.addSeconds(maximumDuration);
+            this._endJulian = JulianDate.addSeconds(this._startJulian, maximumDuration, new JulianDate());
         }
 
         var timeBarWidth = this._timeBarEle.clientWidth;
@@ -310,16 +326,16 @@ define([
         // epochJulian: a nearby time to be considered "zero seconds", should be a round-ish number by human standards.
         var epochJulian;
         if (duration > 315360000) { // 3650+ days visible, epoch is start of the first visible century.
-            epochJulian = JulianDate.fromIso8601(startJulian.toDate().toISOString().substring(0, 2) + '00-01-01T00:00:00Z');
+            epochJulian = JulianDate.fromIso8601(JulianDate.toDate(startJulian).toISOString().substring(0, 2) + '00-01-01T00:00:00Z');
         } else if (duration > 31536000) { // 365+ days visible, epoch is start of the first visible decade.
-            epochJulian = JulianDate.fromIso8601(startJulian.toDate().toISOString().substring(0, 3) + '0-01-01T00:00:00Z');
+            epochJulian = JulianDate.fromIso8601(JulianDate.toDate(startJulian).toISOString().substring(0, 3) + '0-01-01T00:00:00Z');
         } else if (duration > 86400) { // 1+ day(s) visible, epoch is start of the year.
-            epochJulian = JulianDate.fromIso8601(startJulian.toDate().toISOString().substring(0, 4) + '-01-01T00:00:00Z');
+            epochJulian = JulianDate.fromIso8601(JulianDate.toDate(startJulian).toISOString().substring(0, 4) + '-01-01T00:00:00Z');
         } else { // Less than a day on timeline, epoch is midnight of the visible day.
-            epochJulian = JulianDate.fromIso8601(startJulian.toDate().toISOString().substring(0, 10) + 'T00:00:00Z');
+            epochJulian = JulianDate.fromIso8601(JulianDate.toDate(startJulian).toISOString().substring(0, 10) + 'T00:00:00Z');
         }
         // startTime: Seconds offset of the left side of the timeline from epochJulian.
-        var startTime = epochJulian.addSeconds(epsilonTime).getSecondsDifference(this._startJulian);
+        var startTime = JulianDate.getSecondsDifference(this._startJulian, JulianDate.addSeconds(epochJulian, epsilonTime, new JulianDate()));
         // endTime: Seconds offset of the right side of the timeline from epochJulian.
         var endTime = startTime + duration;
         this._epochJulian = epochJulian;
@@ -342,14 +358,17 @@ define([
         }
 
         // Width in pixels of a typical label, plus padding
-        this._rulerEle.innerHTML = this.makeLabel(this._endJulian.addSeconds(-minimumDuration));
+        this._rulerEle.innerHTML = this.makeLabel(JulianDate.addSeconds(this._endJulian, -minimumDuration, new JulianDate()));
         var sampleWidth = this._rulerEle.offsetWidth + 20;
+        if (sampleWidth < 30) {
+            // Workaround an apparent IE bug with measuring the width after going full-screen from inside an iframe.
+            sampleWidth = 180;
+        }
 
         var origMinSize = minSize;
         minSize -= epsilon;
 
         var renderState = {
-            y : 0,
             startTime : startTime,
             startJulian : startJulian,
             epochJulian : epochJulian,
@@ -433,20 +452,24 @@ define([
             this._mainTicSpan = mainTic;
             endTime += mainTic;
             tic = getStartTic(mainTic);
-            var leapSecond = epochJulian.getTaiMinusUtc();
+            var leapSecond = JulianDate.getTaiMinusUtc(epochJulian);
             while (tic <= endTime) {
-                var ticTime = startJulian.addSeconds(tic - startTime);
+                var ticTime = JulianDate.addSeconds(startJulian, tic - startTime, new JulianDate());
                 if (mainTic > 2.1) {
-                    var ticLeap = ticTime.getTaiMinusUtc();
+                    var ticLeap = JulianDate.getTaiMinusUtc(ticTime);
                     if (Math.abs(ticLeap - leapSecond) > 0.1) {
                         tic += (ticLeap - leapSecond);
-                        ticTime = startJulian.addSeconds(tic - startTime);
+                        ticTime = JulianDate.addSeconds(startJulian, tic - startTime, new JulianDate());
                     }
                 }
                 var ticLeft = Math.round(timeBarWidth * getAlpha(tic));
                 var ticLabel = this.makeLabel(ticTime);
                 this._rulerEle.innerHTML = ticLabel;
                 textWidth = this._rulerEle.offsetWidth;
+                if (textWidth < 10) {
+                    // IE iframe fullscreen sampleWidth workaround, continued.
+                    textWidth = sampleWidth;
+                }
                 var labelLeft = ticLeft - ((textWidth / 2) - 1);
                 if (labelLeft > lastTextLeft) {
                     lastTextLeft = labelLeft + textWidth + 5;
@@ -461,8 +484,12 @@ define([
             this._mainTicSpan = -1;
         }
 
+        tics += '<span class="cesium-timeline-icon16" style="left:' + scrubX + 'px;bottom:0;background-position: 0px 0px;"></span>';
         timeBar.innerHTML = tics;
-        this._scrubElement = timeBar.childNodes[0];
+        this._scrubElement = timeBar.lastChild;
+
+        // Clear track canvas.
+        this._context.clearRect(0, 0, this._trackListEle.width, this._trackListEle.height);
 
         renderState.y = 0;
         this._trackList.forEach(function(track) {
@@ -474,9 +501,9 @@ define([
     Timeline.prototype.updateFromClock = function() {
         this._scrubJulian = this._clock.currentTime;
         var scrubElement = this._scrubElement;
-        if (typeof this._scrubElement !== 'undefined') {
-            var seconds = this._startJulian.getSecondsDifference(this._scrubJulian);
-            var xPos = Math.round(seconds * this.container.clientWidth / this._timeBarSecondsSpan);
+        if (defined(this._scrubElement)) {
+            var seconds = JulianDate.getSecondsDifference(this._scrubJulian, this._startJulian);
+            var xPos = Math.round(seconds * this._topDiv.clientWidth / this._timeBarSecondsSpan);
 
             if (this._lastXPos !== xPos) {
                 this._lastXPos = xPos;
@@ -485,15 +512,15 @@ define([
                 this._needleEle.style.left = xPos + 'px';
             }
         }
-        if (typeof this._timelineDragLocation !== 'undefined') {
-            this._setTimeBarTime(this._timelineDragLocation, this._timelineDragLocation * this._timeBarSecondsSpan / this.container.clientWidth);
-            this.zoomTo(this._startJulian.addSeconds(this._timelineDrag), this._endJulian.addSeconds(this._timelineDrag));
+        if (defined(this._timelineDragLocation)) {
+            this._setTimeBarTime(this._timelineDragLocation, this._timelineDragLocation * this._timeBarSecondsSpan / this._topDiv.clientWidth);
+            this.zoomTo(JulianDate.addSeconds(this._startJulian, this._timelineDrag, new JulianDate()), JulianDate.addSeconds(this._endJulian, this._timelineDrag, new JulianDate()));
         }
     };
 
     Timeline.prototype._setTimeBarTime = function(xPos, seconds) {
         xPos = Math.round(xPos);
-        this._scrubJulian = this._startJulian.addSeconds(seconds);
+        this._scrubJulian = JulianDate.addSeconds(this._startJulian, seconds, new JulianDate());
         if (this._scrubElement) {
             var scrubX = xPos - 8;
             this._scrubElement.style.left = scrubX.toString() + 'px';
@@ -505,163 +532,188 @@ define([
         evt.clientX = xPos;
         evt.timeSeconds = seconds;
         evt.timeJulian = this._scrubJulian;
-        this.container.dispatchEvent(evt);
+        evt.clock = this._clock;
+        this._topDiv.dispatchEvent(evt);
     };
 
-    Timeline.prototype._handleMouseDown = function(e) {
-        if (this._mouseMode !== timelineMouseMode.touchOnly) {
-            if (e.button === 0) {
-                this._mouseMode = timelineMouseMode.scrub;
-                if (this._scrubElement) {
-                    this._scrubElement.style.backgroundPosition = '-16px 0';
-                }
-                this._handleMouseMove(e);
-            } else {
-                this._mouseX = e.clientX;
-                if (e.button === 2) {
-                    this._mouseMode = timelineMouseMode.zoom;
+    function createMouseDownCallback(timeline) {
+        return function(e) {
+            if (timeline._mouseMode !== timelineMouseMode.touchOnly) {
+                if (e.button === 0) {
+                    timeline._mouseMode = timelineMouseMode.scrub;
+                    if (timeline._scrubElement) {
+                        timeline._scrubElement.style.backgroundPosition = '-16px 0';
+                    }
+                    timeline._onMouseMove(e);
                 } else {
-                    this._mouseMode = timelineMouseMode.slide;
+                    timeline._mouseX = e.clientX;
+                    if (e.button === 2) {
+                        timeline._mouseMode = timelineMouseMode.zoom;
+                    } else {
+                        timeline._mouseMode = timelineMouseMode.slide;
+                    }
                 }
             }
-        }
-        e.preventDefault();
-    };
-    Timeline.prototype._handleMouseUp = function(e) {
-        this._mouseMode = timelineMouseMode.none;
-        if (this._scrubElement) {
-            this._scrubElement.style.backgroundPosition = '0px 0px';
-        }
-        this._timelineDrag = 0;
-        this._timelineDragLocation = undefined;
-    };
-    Timeline.prototype._handleMouseMove = function(e) {
-        var dx;
-        if (this._mouseMode === timelineMouseMode.scrub) {
             e.preventDefault();
-            var x = e.clientX - this.container.getBoundingClientRect().left;
+        };
+    }
 
-            if (x < 0) {
-                this._timelineDragLocation = 0;
-                this._timelineDrag = -0.01*this._timeBarSecondsSpan;
-            } else if (x > this.container.clientWidth) {
-                this._timelineDragLocation = this.container.clientWidth;
-                this._timelineDrag = 0.01*this._timeBarSecondsSpan;
-            } else {
-                this._timelineDragLocation = undefined;
-                this._setTimeBarTime(x, x * this._timeBarSecondsSpan / this.container.clientWidth);
+    function createMouseUpCallback(timeline) {
+        return function(e) {
+            timeline._mouseMode = timelineMouseMode.none;
+            if (timeline._scrubElement) {
+                timeline._scrubElement.style.backgroundPosition = '0px 0px';
             }
+            timeline._timelineDrag = 0;
+            timeline._timelineDragLocation = undefined;
+        };
+    }
 
-        } else if (this._mouseMode === timelineMouseMode.slide) {
-            dx = this._mouseX - e.clientX;
-            this._mouseX = e.clientX;
-            if (dx !== 0) {
-                var dsec = dx * this._timeBarSecondsSpan / this.container.clientWidth;
-                this.zoomTo(this._startJulian.addSeconds(dsec), this._endJulian.addSeconds(dsec));
-            }
-        } else if (this._mouseMode === timelineMouseMode.zoom) {
-            dx = this._mouseX - e.clientX;
-            this._mouseX = e.clientX;
-            if (dx !== 0) {
-                this.zoomFrom(Math.pow(1.01, dx));
-            }
-        }
-    };
-    Timeline.prototype._handleMouseWheel = function(e) {
-        var dy = e.wheelDeltaY || e.wheelDelta || (-e.detail);
-        timelineWheelDelta = Math.max(Math.min(Math.abs(dy), timelineWheelDelta), 1);
-        dy /= timelineWheelDelta;
-        this.zoomFrom(Math.pow(1.05, -dy));
-    };
+    function createMouseMoveCallback(timeline) {
+        return function(e) {
+            var dx;
+            if (timeline._mouseMode === timelineMouseMode.scrub) {
+                e.preventDefault();
+                var x = e.clientX - timeline._topDiv.getBoundingClientRect().left;
 
-    Timeline.prototype._handleTouchStart = function(e) {
-        var len = e.touches.length, seconds, xPos, leftX = this.container.getBoundingClientRect().left;
-        e.preventDefault();
-        this._mouseMode = timelineMouseMode.touchOnly;
-        if (len === 1) {
-            seconds = this._startJulian.getSecondsDifference(this._scrubJulian);
-            xPos = Math.round(seconds * this.container.clientWidth / this._timeBarSecondsSpan + leftX);
-            if (Math.abs(e.touches[0].clientX - xPos) < 50) {
-                this._touchMode = timelineTouchMode.scrub;
-                if (this._scrubElement) {
-                    this._scrubElement.style.backgroundPosition = (len === 1) ? '-16px 0' : '0 0';
-                }
-            } else {
-                this._touchMode = timelineTouchMode.singleTap;
-                this._touchState.centerX = e.touches[0].clientX - leftX;
-            }
-        } else if (len === 2) {
-            this._touchMode = timelineTouchMode.slideZoom;
-            this._touchState.centerX = (e.touches[0].clientX + e.touches[1].clientX) * 0.5 - leftX;
-            this._touchState.spanX = Math.abs(e.touches[0].clientX - e.touches[1].clientX);
-        } else {
-            this._touchMode = timelineTouchMode.ignore;
-        }
-    };
-    Timeline.prototype._handleTouchEnd = function(e) {
-        var len = e.touches.length, leftX = this.container.getBoundingClientRect().left;
-        if (this._touchMode === timelineTouchMode.singleTap) {
-            this._touchMode = timelineTouchMode.scrub;
-            this._handleTouchMove(e);
-        } else if (this._touchMode === timelineTouchMode.scrub) {
-            this._handleTouchMove(e);
-        }
-        this._mouseMode = timelineMouseMode.touchOnly;
-        if (len !== 1) {
-            this._touchMode = (len > 0) ? timelineTouchMode.ignore : timelineTouchMode.none;
-        } else if (this._touchMode === timelineTouchMode.slideZoom) {
-            this._touchState.centerX = e.touches[0].clientX - leftX;
-        }
-        if (this._scrubElement) {
-            this._scrubElement.style.backgroundPosition = '0 0';
-        }
-    };
-    Timeline.prototype._handleTouchMove = function(e) {
-        var dx, x, len, newCenter, newSpan, newStartTime, zoom = 1, leftX = this.container.getBoundingClientRect().left;
-        if (this._touchMode === timelineTouchMode.singleTap) {
-            this._touchMode = timelineTouchMode.slideZoom;
-        }
-        this._mouseMode = timelineMouseMode.touchOnly;
-        if (this._touchMode === timelineTouchMode.scrub) {
-            e.preventDefault();
-            if (e.changedTouches.length === 1) {
-                x = e.changedTouches[0].clientX - leftX;
-                if ((x >= 0) && (x <= this.container.clientWidth)) {
-                    this._setTimeBarTime(x, x * this._timeBarSecondsSpan / this.container.clientWidth);
-                }
-            }
-        } else if (this._touchMode === timelineTouchMode.slideZoom) {
-            len = e.touches.length;
-            if (len === 2) {
-                newCenter = (e.touches[0].clientX + e.touches[1].clientX) * 0.5 - leftX;
-                newSpan = Math.abs(e.touches[0].clientX - e.touches[1].clientX);
-            } else if (len === 1) {
-                newCenter = e.touches[0].clientX - leftX;
-                newSpan = 0;
-            }
-
-            if (typeof newCenter !== 'undefined') {
-                if ((newSpan > 0) && (this._touchState.spanX > 0)) {
-                    // Zoom and slide
-                    zoom = (this._touchState.spanX / newSpan);
-                    newStartTime = this._startJulian.addSeconds(((this._touchState.centerX * this._timeBarSecondsSpan) - (newCenter * this._timeBarSecondsSpan * zoom)) /
-                            this.container.clientWidth);
+                if (x < 0) {
+                    timeline._timelineDragLocation = 0;
+                    timeline._timelineDrag = -0.01 * timeline._timeBarSecondsSpan;
+                } else if (x > timeline._topDiv.clientWidth) {
+                    timeline._timelineDragLocation = timeline._topDiv.clientWidth;
+                    timeline._timelineDrag = 0.01 * timeline._timeBarSecondsSpan;
                 } else {
-                    // Slide to newCenter
-                    dx = this._touchState.centerX - newCenter;
-                    newStartTime = this._startJulian.addSeconds(dx * this._timeBarSecondsSpan / this.container.clientWidth);
+                    timeline._timelineDragLocation = undefined;
+                    timeline._setTimeBarTime(x, x * timeline._timeBarSecondsSpan / timeline._topDiv.clientWidth);
                 }
 
-                this.zoomTo(newStartTime, newStartTime.addSeconds(this._timeBarSecondsSpan * zoom));
-                this._touchState.centerX = newCenter;
-                this._touchState.spanX = newSpan;
+            } else if (timeline._mouseMode === timelineMouseMode.slide) {
+                dx = timeline._mouseX - e.clientX;
+                timeline._mouseX = e.clientX;
+                if (dx !== 0) {
+                    var dsec = dx * timeline._timeBarSecondsSpan / timeline._topDiv.clientWidth;
+                    timeline.zoomTo(JulianDate.addSeconds(timeline._startJulian, dsec, new JulianDate()), JulianDate.addSeconds(timeline._endJulian, dsec, new JulianDate()));
+                }
+            } else if (timeline._mouseMode === timelineMouseMode.zoom) {
+                dx = timeline._mouseX - e.clientX;
+                timeline._mouseX = e.clientX;
+                if (dx !== 0) {
+                    timeline.zoomFrom(Math.pow(1.01, dx));
+                }
             }
-        }
-    };
+        };
+    }
 
-    Timeline.prototype.handleResize = function() {
-        var containerHeight = this.container.getBoundingClientRect().height - this._timeBarEle.getBoundingClientRect().height - 2;
-        this._trackContainer.style.height = containerHeight.toString() + 'px';
+    function createMouseWheelCallback(timeline) {
+        return function(e) {
+            var dy = e.wheelDeltaY || e.wheelDelta || (-e.detail);
+            timelineWheelDelta = Math.max(Math.min(Math.abs(dy), timelineWheelDelta), 1);
+            dy /= timelineWheelDelta;
+            timeline.zoomFrom(Math.pow(1.05, -dy));
+        };
+    }
+
+    function createTouchStartCallback(timeline) {
+        return function(e) {
+            var len = e.touches.length, seconds, xPos, leftX = timeline._topDiv.getBoundingClientRect().left;
+            e.preventDefault();
+            timeline._mouseMode = timelineMouseMode.touchOnly;
+            if (len === 1) {
+                seconds = JulianDate.getSecondsDifference(timeline._scrubJulian, timeline._startJulian);
+                xPos = Math.round(seconds * timeline._topDiv.clientWidth / timeline._timeBarSecondsSpan + leftX);
+                if (Math.abs(e.touches[0].clientX - xPos) < 50) {
+                    timeline._touchMode = timelineTouchMode.scrub;
+                    if (timeline._scrubElement) {
+                        timeline._scrubElement.style.backgroundPosition = (len === 1) ? '-16px 0' : '0 0';
+                    }
+                } else {
+                    timeline._touchMode = timelineTouchMode.singleTap;
+                    timeline._touchState.centerX = e.touches[0].clientX - leftX;
+                }
+            } else if (len === 2) {
+                timeline._touchMode = timelineTouchMode.slideZoom;
+                timeline._touchState.centerX = (e.touches[0].clientX + e.touches[1].clientX) * 0.5 - leftX;
+                timeline._touchState.spanX = Math.abs(e.touches[0].clientX - e.touches[1].clientX);
+            } else {
+                timeline._touchMode = timelineTouchMode.ignore;
+            }
+        };
+    }
+
+    function createTouchEndCallback(timeline) {
+        return function(e) {
+            var len = e.touches.length, leftX = timeline._topDiv.getBoundingClientRect().left;
+            if (timeline._touchMode === timelineTouchMode.singleTap) {
+                timeline._touchMode = timelineTouchMode.scrub;
+                timeline._handleTouchMove(e);
+            } else if (timeline._touchMode === timelineTouchMode.scrub) {
+                timeline._handleTouchMove(e);
+            }
+            timeline._mouseMode = timelineMouseMode.touchOnly;
+            if (len !== 1) {
+                timeline._touchMode = (len > 0) ? timelineTouchMode.ignore : timelineTouchMode.none;
+            } else if (timeline._touchMode === timelineTouchMode.slideZoom) {
+                timeline._touchState.centerX = e.touches[0].clientX - leftX;
+            }
+            if (timeline._scrubElement) {
+                timeline._scrubElement.style.backgroundPosition = '0 0';
+            }
+        };
+    }
+
+    function createTouchMoveCallback(timeline) {
+        return function(e) {
+            var dx, x, len, newCenter, newSpan, newStartTime, zoom = 1, leftX = timeline._topDiv.getBoundingClientRect().left;
+            if (timeline._touchMode === timelineTouchMode.singleTap) {
+                timeline._touchMode = timelineTouchMode.slideZoom;
+            }
+            timeline._mouseMode = timelineMouseMode.touchOnly;
+            if (timeline._touchMode === timelineTouchMode.scrub) {
+                e.preventDefault();
+                if (e.changedTouches.length === 1) {
+                    x = e.changedTouches[0].clientX - leftX;
+                    if ((x >= 0) && (x <= timeline._topDiv.clientWidth)) {
+                        timeline._setTimeBarTime(x, x * timeline._timeBarSecondsSpan / timeline._topDiv.clientWidth);
+                    }
+                }
+            } else if (timeline._touchMode === timelineTouchMode.slideZoom) {
+                len = e.touches.length;
+                if (len === 2) {
+                    newCenter = (e.touches[0].clientX + e.touches[1].clientX) * 0.5 - leftX;
+                    newSpan = Math.abs(e.touches[0].clientX - e.touches[1].clientX);
+                } else if (len === 1) {
+                    newCenter = e.touches[0].clientX - leftX;
+                    newSpan = 0;
+                }
+
+                if (defined(newCenter)) {
+                    if ((newSpan > 0) && (timeline._touchState.spanX > 0)) {
+                        // Zoom and slide
+                        zoom = (timeline._touchState.spanX / newSpan);
+                        newStartTime = JulianDate.addSeconds(timeline._startJulian, ((timeline._touchState.centerX * timeline._timeBarSecondsSpan) - (newCenter * timeline._timeBarSecondsSpan * zoom)) / timeline._topDiv.clientWidth, new JulianDate());
+                    } else {
+                        // Slide to newCenter
+                        dx = timeline._touchState.centerX - newCenter;
+                        newStartTime = JulianDate.addSeconds(timeline._startJulian, dx * timeline._timeBarSecondsSpan / timeline._topDiv.clientWidth, new JulianDate());
+                    }
+
+                    timeline.zoomTo(newStartTime, JulianDate.addSeconds(newStartTime, timeline._timeBarSecondsSpan * zoom, new JulianDate()));
+                    timeline._touchState.centerX = newCenter;
+                    timeline._touchState.spanX = newSpan;
+                }
+            }
+        };
+    }
+
+    Timeline.prototype.resize = function() {
+        var width = this.container.clientWidth;
+        var height = this.container.clientHeight;
+
+        if (width === this._lastWidth && height === this._lastHeight) {
+            return;
+        }
+
+        this._trackContainer.style.height = height + 'px';
 
         var trackListHeight = 1;
         this._trackList.forEach(function(track) {
@@ -671,6 +723,9 @@ define([
         this._trackListEle.width = this._trackListEle.clientWidth;
         this._trackListEle.height = trackListHeight;
         this._makeTics();
+
+        this._lastWidth = width;
+        this._lastHeight = height;
     };
 
     return Timeline;

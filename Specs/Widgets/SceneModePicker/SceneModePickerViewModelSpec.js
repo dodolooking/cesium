@@ -1,117 +1,111 @@
 /*global defineSuite*/
-defineSuite(['Widgets/SceneModePicker/SceneModePickerViewModel',
-             'Core/Event',
-             'Scene/SceneMode'
-             ], function(
-              SceneModePickerViewModel,
-              Event,
-              SceneMode) {
+defineSuite([
+        'Widgets/SceneModePicker/SceneModePickerViewModel',
+        'Core/Ellipsoid',
+        'Scene/Globe',
+        'Scene/SceneMode',
+        'Specs/createScene',
+        'Specs/destroyScene'
+    ], function(
+        SceneModePickerViewModel,
+        Ellipsoid,
+        Globe,
+        SceneMode,
+        createScene,
+        destroyScene) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
+    var scene;
+    var ellipsoid = Ellipsoid.WGS84;
+    beforeEach(function() {
+        scene = createScene();
+        var globe = new Globe(ellipsoid);
+        scene.globe = globe;
+    });
 
-    var MockTransitioner = function() {
-        this.scene = {
-            mode : SceneMode.SCENE3D
-        };
-        this.onTransitionStart = new Event();
-    };
-
-    MockTransitioner.prototype.morphTo2D = function() {
-        this.scene.mode = SceneMode.MORPHING;
-        this.onTransitionStart.raiseEvent(this, this.scene.mode, SceneMode.SCENE2D, true);
-        this.scene.mode = SceneMode.SCENE2D;
-    };
-
-    MockTransitioner.prototype.morphTo3D = function() {
-        this.scene.mode = SceneMode.MORPHING;
-        this.onTransitionStart.raiseEvent(this, this.scene.mode, SceneMode.SCENE3D, true);
-        this.scene.mode = SceneMode.SCENE3D;
-    };
-
-    MockTransitioner.prototype.morphToColumbusView = function() {
-        this.scene.mode = SceneMode.MORPHING;
-        this.onTransitionStart.raiseEvent(this, this.scene.mode, SceneMode.COLUMBUS_VIEW, true);
-        this.scene.mode = SceneMode.COLUMBUS_VIEW;
-    };
-
-    MockTransitioner.prototype.getScene = function() {
-        return this.scene;
-    };
+    afterEach(function() {
+        destroyScene(scene);
+    });
 
     it('Can construct and destroy', function() {
-        var mockTransitioner = new MockTransitioner();
-        var viewModel = new SceneModePickerViewModel(mockTransitioner);
-        expect(mockTransitioner.onTransitionStart.getNumberOfListeners()).toEqual(1);
+        var viewModel = new SceneModePickerViewModel(scene);
+        expect(viewModel.scene).toBe(scene);
+        expect(scene.morphStart.numberOfListeners).toEqual(1);
+        expect(viewModel.isDestroyed()).toEqual(false);
         viewModel.destroy();
+        expect(viewModel.isDestroyed()).toEqual(true);
+        expect(scene.morphStart.numberOfListeners).toEqual(0);
     });
 
     it('dropDownVisible and toggleDropDown work', function() {
-        var viewModel = new SceneModePickerViewModel(new MockTransitioner());
+        var viewModel = new SceneModePickerViewModel(scene);
 
-        expect(viewModel.dropDownVisible()).toEqual(false);
+        expect(viewModel.dropDownVisible).toEqual(false);
         viewModel.toggleDropDown();
-        expect(viewModel.dropDownVisible()).toEqual(true);
-        viewModel.dropDownVisible(false);
-        expect(viewModel.dropDownVisible()).toEqual(false);
+        expect(viewModel.dropDownVisible).toEqual(true);
+        viewModel.dropDownVisible = false;
+        expect(viewModel.dropDownVisible).toEqual(false);
 
         viewModel.destroy();
     });
 
     it('morphing closes the dropDown', function() {
-        var viewModel = new SceneModePickerViewModel(new MockTransitioner());
+        var viewModel = new SceneModePickerViewModel(scene);
 
-        viewModel.dropDownVisible(true);
+        viewModel.dropDownVisible = true;
         viewModel.morphTo2D();
-        expect(viewModel.dropDownVisible()).toEqual(false);
+        expect(viewModel.dropDownVisible).toEqual(false);
 
-        viewModel.dropDownVisible(true);
+        viewModel.dropDownVisible = true;
         viewModel.morphTo3D();
-        expect(viewModel.dropDownVisible()).toEqual(false);
+        expect(viewModel.dropDownVisible).toEqual(false);
 
-        viewModel.dropDownVisible(true);
+        viewModel.dropDownVisible = true;
         viewModel.morphToColumbusView();
-        expect(viewModel.dropDownVisible()).toEqual(false);
+        expect(viewModel.dropDownVisible).toEqual(false);
 
         viewModel.destroy();
     });
 
     it('morphing calls correct transition', function() {
-        var mockTransitioner = new MockTransitioner();
-        var viewModel = new SceneModePickerViewModel(mockTransitioner);
+        var viewModel = new SceneModePickerViewModel(scene);
 
-        expect(mockTransitioner.scene.mode).toEqual(SceneMode.SCENE3D);
+        expect(scene.mode).toEqual(SceneMode.SCENE3D);
+
         viewModel.morphTo2D();
-        expect(mockTransitioner.scene.mode).toEqual(SceneMode.SCENE2D);
+        scene.completeMorph();
+        expect(scene.mode).toEqual(SceneMode.SCENE2D);
 
         viewModel.morphTo3D();
-        expect(mockTransitioner.scene.mode).toEqual(SceneMode.SCENE3D);
+        scene.completeMorph();
+        expect(scene.mode).toEqual(SceneMode.SCENE3D);
 
         viewModel.morphToColumbusView();
-        expect(mockTransitioner.scene.mode).toEqual(SceneMode.COLUMBUS_VIEW);
+        scene.completeMorph();
+        expect(scene.mode).toEqual(SceneMode.COLUMBUS_VIEW);
 
         viewModel.destroy();
     });
 
-    it('selectedToolTip changes on transition', function() {
-        var mockTransitioner = new MockTransitioner();
-        var viewModel = new SceneModePickerViewModel(mockTransitioner);
+    it('selectedTooltip changes on transition', function() {
+        var viewModel = new SceneModePickerViewModel(scene);
 
         viewModel.morphTo2D();
-        expect(viewModel.selectedTooltip()).toEqual(viewModel.tooltip2D());
+        expect(viewModel.selectedTooltip).toEqual(viewModel.tooltip2D);
 
         viewModel.morphTo3D();
-        expect(viewModel.selectedTooltip()).toEqual(viewModel.tooltip3D());
+        expect(viewModel.selectedTooltip).toEqual(viewModel.tooltip3D);
 
         viewModel.morphToColumbusView();
-        expect(viewModel.selectedTooltip()).toEqual(viewModel.tooltipColumbusView());
+        expect(viewModel.selectedTooltip).toEqual(viewModel.tooltipColumbusView);
 
         viewModel.destroy();
     });
 
-    it('create throws with undefined transitioner', function() {
+    it('create throws with undefined scene', function() {
         expect(function() {
             return new SceneModePickerViewModel();
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
 });

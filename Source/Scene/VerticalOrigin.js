@@ -1,5 +1,5 @@
 /*global define*/
-define(['../Core/Enumeration'], function(Enumeration) {
+define(function() {
     "use strict";
 
     /**
@@ -9,30 +9,32 @@ define(['../Core/Enumeration'], function(Enumeration) {
      *
      * @exports VerticalOrigin
      *
-     * @see Billboard#setVerticalOrigin
+     * @see Billboard#verticalOrigin
      */
     var VerticalOrigin = {
         /**
          * The origin is at the vertical center of the object.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        CENTER : new Enumeration(0, 'CENTER'),
+        CENTER : 0,
+
         /**
          * The origin is at the bottom of the object.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        BOTTOM : new Enumeration(1, 'BOTTOM'),
+        BOTTOM : 1,
+
         /**
          * The origin is at the top of the object.
          *
+         * @type {Number}
          * @constant
-         * @type {Enumeration}
          */
-        TOP : new Enumeration(-1, 'TOP')
+        TOP : -1
     };
 
     return VerticalOrigin;

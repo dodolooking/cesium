@@ -1,9 +1,11 @@
 /*global define*/
 define([
+        '../Core/defined',
         '../Core/DeveloperError',
         '../Core/loadImage',
         '../ThirdParty/when'
     ], function(
+        defined,
         DeveloperError,
         loadImage,
         when) {
@@ -20,14 +22,16 @@ define([
      * @param {Boolean} [allowCrossOrigin=true] Whether to request the image using Cross-Origin
      *        Resource Sharing (CORS).  CORS is only actually used if the image URL is actually cross-origin.
      *        Data URIs are never requested using CORS.
-     *
      * @returns {Promise} a promise that will resolve to the requested {@link CubeMap} when loaded.
      *
      * @exception {DeveloperError} context is required.
      * @exception {DeveloperError} urls is required and must have positiveX, negativeX, positiveY, negativeY, positiveZ, and negativeZ properties.
      *
+     * @see {@link http://www.w3.org/TR/cors/|Cross-Origin Resource Sharing}
+     * @see {@link http://wiki.commonjs.org/wiki/Promises/A|CommonJS Promises/A}
+     *
      * @example
-     * loadCubeMap(context, {
+     * Cesium.loadCubeMap(context, {
      *     positiveX : 'skybox_px.png',
      *     negativeX : 'skybox_nx.png',
      *     positiveY : 'skybox_py.png',
@@ -36,27 +40,27 @@ define([
      *     negativeZ : 'skybox_nz.png'
      * }).then(function(cubeMap) {
      *     // use the cubemap
-     * }, function() {
+     * }, function(error) {
      *     // an error occurred
      * });
      *
-     * @see <a href='http://www.w3.org/TR/cors/'>Cross-Origin Resource Sharing</a>
-     * @see <a href='http://wiki.commonjs.org/wiki/Promises/A'>CommonJS Promises/A</a>
+     * @private
      */
     var loadCubeMap = function(context, urls, allowCrossOrigin) {
-        if (typeof context === 'undefined') {
+        //>>includeStart('debug', pragmas.debug);
+        if (!defined(context)) {
             throw new DeveloperError('context is required.');
         }
-
-        if ((typeof urls === 'undefined') ||
-            (typeof urls.positiveX === 'undefined') ||
-            (typeof urls.negativeX === 'undefined') ||
-            (typeof urls.positiveY === 'undefined') ||
-            (typeof urls.negativeY === 'undefined') ||
-            (typeof urls.positiveZ === 'undefined') ||
-            (typeof urls.negativeZ === 'undefined')) {
+        if ((!defined(urls)) ||
+            (!defined(urls.positiveX)) ||
+            (!defined(urls.negativeX)) ||
+            (!defined(urls.positiveY)) ||
+            (!defined(urls.negativeY)) ||
+            (!defined(urls.positiveZ)) ||
+            (!defined(urls.negativeZ))) {
             throw new DeveloperError('urls is required and must have positiveX, negativeX, positiveY, negativeY, positiveZ, and negativeZ properties.');
         }
+        //>>includeEnd('debug');
 
         // PERFORMANCE_IDEA: Given the size of some cube maps, we should consider tiling them, which
         // would prevent hiccups when uploading, for example, six 4096x4096 textures to the GPU.

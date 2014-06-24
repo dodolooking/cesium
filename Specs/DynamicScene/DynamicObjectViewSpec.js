@@ -1,20 +1,22 @@
 /*global defineSuite*/
 defineSuite([
-             'DynamicScene/DynamicObjectView',
-             'Core/Ellipsoid',
-             'Core/JulianDate',
-             'DynamicScene/DynamicObject',
-             'Specs/MockProperty',
-             'Specs/createScene',
-             'Specs/destroyScene'
-            ], function(
-              DynamicObjectView,
-              Ellipsoid,
-              JulianDate,
-              DynamicObject,
-              MockProperty,
-              createScene,
-              destroyScene) {
+        'DynamicScene/DynamicObjectView',
+        'Core/Cartesian3',
+        'Core/Ellipsoid',
+        'Core/JulianDate',
+        'DynamicScene/ConstantPositionProperty',
+        'DynamicScene/DynamicObject',
+        'Specs/createScene',
+        'Specs/destroyScene'
+    ], function(
+        DynamicObjectView,
+        Cartesian3,
+        Ellipsoid,
+        JulianDate,
+        ConstantPositionProperty,
+        DynamicObject,
+        createScene,
+        destroyScene) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
 
@@ -46,45 +48,45 @@ defineSuite([
 
     it('update throws without time parameter', function() {
         var dynamicObject = new DynamicObject();
-        dynamicObject.position = new MockProperty();
+        dynamicObject.position = new ConstantPositionProperty(Cartesian3.ZERO);
         var view = new DynamicObjectView(dynamicObject, scene);
         expect(function() {
             view.update(undefined);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('update throws without dynamicObject property', function() {
         var view = new DynamicObjectView(undefined, scene);
         expect(function() {
-            view.update(new JulianDate());
-        }).toThrow();
+            view.update(JulianDate.now());
+        }).toThrowDeveloperError();
 
     });
 
     it('update throws without scene property', function() {
         var dynamicObject = new DynamicObject();
-        dynamicObject.position = new MockProperty();
+        dynamicObject.position = new ConstantPositionProperty(Cartesian3.ZERO);
         var view = new DynamicObjectView(dynamicObject, undefined);
         expect(function() {
-            view.update(new JulianDate());
-        }).toThrow();
+            view.update(JulianDate.now());
+        }).toThrowDeveloperError();
     });
 
     it('update throws without ellipsoid property', function() {
         var dynamicObject = new DynamicObject();
-        dynamicObject.position = new MockProperty();
+        dynamicObject.position = new ConstantPositionProperty(Cartesian3.ZERO);
         var view = new DynamicObjectView(dynamicObject, scene);
         view.ellipsoid = undefined;
         expect(function() {
-            view.update(new JulianDate());
-        }).toThrow();
+            view.update(JulianDate.now());
+        }).toThrowDeveloperError();
     });
 
     it('update throws without dynamicObject.position property.', function() {
         var dynamicObject = new DynamicObject();
         var view = new DynamicObjectView(dynamicObject, scene);
         expect(function() {
-            view.update(new JulianDate());
-        }).toThrow();
+            view.update(JulianDate.now());
+        }).toThrowDeveloperError();
     });
 }, 'WebGL');

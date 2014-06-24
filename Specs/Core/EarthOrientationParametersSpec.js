@@ -1,52 +1,27 @@
 /*global defineSuite*/
-defineSuite(['Core/EarthOrientationParameters',
-             'Core/Transforms',
-             'Core/DeveloperError',
-             'Core/Cartesian2',
-             'Core/Cartesian3',
-             'Core/Cartesian4',
-             'Core/Ellipsoid',
-             'Core/JulianDate',
-             'Core/LeapSecond',
-             'Core/Matrix3',
-             'Core/Matrix4',
-             'Core/Math',
-             'Core/Quaternion',
-             'Core/TimeConstants',
-             'Core/TimeInterval',
-             'Core/TimeStandard',
-             'ThirdParty/when',
-             'Core/loadJson'
-     ], function(
-             EarthOrientationParameters,
-             Transforms,
-             DeveloperError,
-             Cartesian2,
-             Cartesian3,
-             Cartesian4,
-             Ellipsoid,
-             JulianDate,
-             LeapSecond,
-             Matrix3,
-             Matrix4,
-             CesiumMath,
-             Quaternion,
-             TimeConstants,
-             TimeInterval,
-             TimeStandard,
-             when,
-             loadJson) {
+defineSuite([
+        'Core/EarthOrientationParameters',
+        'Core/defined',
+        'Core/JulianDate',
+        'Core/LeapSecond',
+        'Core/TimeStandard'
+    ], function(
+        EarthOrientationParameters,
+        defined,
+        JulianDate,
+        LeapSecond,
+        TimeStandard) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
 
     var officialLeapSeconds;
 
     beforeAll(function() {
-        officialLeapSeconds = LeapSecond.getLeapSeconds().slice(0);
+        officialLeapSeconds = JulianDate.leapSeconds.slice(0);
     });
 
     afterEach(function() {
-        LeapSecond.setLeapSeconds(officialLeapSeconds.slice(0));
+        JulianDate.leapSeconds = officialLeapSeconds.slice(0);
     });
 
     it('adds leap seconds found in the data by default', function() {
@@ -69,7 +44,7 @@ defineSuite(['Core/EarthOrientationParameters',
         });
         expect(eop).not.toBeNull();
 
-        var leapSeconds = LeapSecond.getLeapSeconds();
+        var leapSeconds = JulianDate.leapSeconds;
         expect(leapSeconds.length).toBe(officialLeapSeconds.length + 1);
 
         var newDate = new JulianDate(2455799.5, 34.5, TimeStandard.TAI);
@@ -82,7 +57,7 @@ defineSuite(['Core/EarthOrientationParameters',
                 foundNew = true;
             }
 
-            if (typeof previousDate !== 'undefined') {
+            if (defined(previousDate)) {
                 expect(JulianDate.compare(previousDate, leapSecond.julianDate)).toBeLessThan(0);
             }
 
@@ -113,7 +88,7 @@ defineSuite(['Core/EarthOrientationParameters',
         });
         expect(eop).not.toBeNull();
 
-        var leapSeconds = LeapSecond.getLeapSeconds();
+        var leapSeconds = JulianDate.leapSeconds;
         expect(leapSeconds.length).toBe(officialLeapSeconds.length);
     });
 
@@ -150,7 +125,7 @@ defineSuite(['Core/EarthOrientationParameters',
             var nColumns = eopDescription.data.columnNames.length;
             var x0 = eopDescription.data.samples[1 * nColumns + 2];
             var x1 = eopDescription.data.samples[2 * nColumns + 2];
-            var dt = JulianDate.fromIso8601(eopDescription.data.samples[nColumns]).getSecondsDifference(date) / 86400.0;
+            var dt = JulianDate.getSecondsDifference(date, JulianDate.fromIso8601(eopDescription.data.samples[nColumns])) / 86400.0;
             var expected = linearInterp(dt, x0, x1);
             expect(result.xPoleWander).toEqualEpsilon(expected, 1e-22);
             x0 = eopDescription.data.samples[1 * nColumns + 3];
@@ -196,15 +171,15 @@ defineSuite(['Core/EarthOrientationParameters',
 
             var eop = new EarthOrientationParameters(eopDescription);
             var dateAtLeapSecond = JulianDate.fromIso8601("2009-01-01T00:00:00Z");
-            var dateSlightlyBefore = dateAtLeapSecond.addSeconds(-1.0);
-            var dateSlightlyAfter = dateAtLeapSecond.addSeconds(1.0);
+            var dateSlightlyBefore = JulianDate.addSeconds(dateAtLeapSecond, -1.0, new JulianDate());
+            var dateSlightlyAfter = JulianDate.addSeconds(dateAtLeapSecond, 1.0, new JulianDate());
             var nColumns = eopDescription.data.columnNames.length;
             var x0 = eopDescription.data.samples[1*nColumns + 6];
             var x1 = eopDescription.data.samples[2*nColumns + 6];
             var x2 = eopDescription.data.samples[3*nColumns + 6];
             var t0 = JulianDate.fromIso8601(eopDescription.data.samples[nColumns]);
             var t1 = JulianDate.fromIso8601(eopDescription.data.samples[2*nColumns]);
-            var dt = t0.getSecondsDifference(dateSlightlyBefore) / (86400.0 + 1);
+            var dt = JulianDate.getSecondsDifference(dateSlightlyBefore, t0) / (86400.0 + 1);
             // Adjust for leap second when interpolating
             var expectedBefore = linearInterp(dt, x0, (x1 - 1));
             var resultBefore = eop.compute(dateSlightlyBefore);
@@ -212,7 +187,7 @@ defineSuite(['Core/EarthOrientationParameters',
             var expectedAt = eopDescription.data.samples[2*nColumns + 6];
             var resultAt = eop.compute(dateAtLeapSecond);
             expect(resultAt.ut1MinusUtc).toEqualEpsilon(expectedAt, 1.0e-15);
-            dt = t1.getSecondsDifference(dateSlightlyAfter) / (86400.0);
+            dt = JulianDate.getSecondsDifference(dateSlightlyAfter, t1) / (86400.0);
             var expectedAfter = linearInterp(dt, x1, x2);
             var resultAfter = eop.compute(dateSlightlyAfter);
             expect(resultAfter.ut1MinusUtc).toEqualEpsilon(expectedAfter, 1.0e-15);

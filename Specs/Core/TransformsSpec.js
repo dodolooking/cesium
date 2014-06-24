@@ -1,52 +1,56 @@
 /*global defineSuite*/
 defineSuite([
-         'Core/Transforms',
-         'Core/DeveloperError',
-         'Core/Cartesian2',
-         'Core/Cartesian3',
-         'Core/Cartesian4',
-         'Core/Ellipsoid',
-         'Core/Iau2006XysData',
-         'Core/JulianDate',
-         'Core/Matrix3',
-         'Core/Matrix4',
-         'Core/Math',
-         'Core/Quaternion',
-         'Core/TimeConstants',
-         'Core/TimeInterval',
-         'Core/EarthOrientationParameters',
-         'ThirdParty/when',
-         'Core/loadJson'
-     ], function(
-         Transforms,
-         DeveloperError,
-         Cartesian2,
-         Cartesian3,
-         Cartesian4,
-         Ellipsoid,
-         Iau2006XysData,
-         JulianDate,
-         Matrix3,
-         Matrix4,
-         CesiumMath,
-         Quaternion,
-         TimeConstants,
-         TimeInterval,
-         EarthOrientationParameters,
-         when,
-         loadJson) {
+        'Core/Transforms',
+        'Core/Cartesian2',
+        'Core/Cartesian3',
+        'Core/Cartesian4',
+        'Core/defined',
+        'Core/DeveloperError',
+        'Core/EarthOrientationParameters',
+        'Core/Ellipsoid',
+        'Core/Iau2006XysData',
+        'Core/JulianDate',
+        'Core/loadJson',
+        'Core/Math',
+        'Core/Matrix3',
+        'Core/Matrix4',
+        'Core/Quaternion',
+        'Core/TimeConstants',
+        'Core/TimeInterval',
+        'ThirdParty/when'
+    ], function(
+        Transforms,
+        Cartesian2,
+        Cartesian3,
+        Cartesian4,
+        defined,
+        DeveloperError,
+        EarthOrientationParameters,
+        Ellipsoid,
+        Iau2006XysData,
+        JulianDate,
+        loadJson,
+        CesiumMath,
+        Matrix3,
+        Matrix4,
+        Quaternion,
+        TimeConstants,
+        TimeInterval,
+        when) {
     "use strict";
     /*global jasmine,describe,xdescribe,it,xit,expect,beforeEach,afterEach,beforeAll,afterAll,spyOn,runs,waits,waitsFor*/
 
+    var negativeX = new Cartesian4(-1, 0, 0, 0);
+    var negativeZ = new Cartesian4(0, 0, -1, 0);
     it('eastNorthUpToFixedFrame works without a result parameter', function() {
         var origin = new Cartesian3(1.0, 0.0, 0.0);
         var expectedTranslation = new Cartesian4(origin.x, origin.y, origin.z, 1.0);
 
         var returnedResult = Transforms.eastNorthUpToFixedFrame(origin, Ellipsoid.UNIT_SPHERE);
-        expect(returnedResult.getColumn(0)).toEqual(Cartesian4.UNIT_Y); // east
-        expect(returnedResult.getColumn(1)).toEqual(Cartesian4.UNIT_Z); // north
-        expect(returnedResult.getColumn(2)).toEqual(Cartesian4.UNIT_X); // up
-        expect(returnedResult.getColumn(3)).toEqual(expectedTranslation); // translation
+        expect(Matrix4.getColumn(returnedResult, 0)).toEqual(Cartesian4.UNIT_Y); // east
+        expect(Matrix4.getColumn(returnedResult, 1)).toEqual(Cartesian4.UNIT_Z); // north
+        expect(Matrix4.getColumn(returnedResult, 2)).toEqual(Cartesian4.UNIT_X); // up
+        expect(Matrix4.getColumn(returnedResult, 3)).toEqual(expectedTranslation); // translation
     });
 
     it('eastNorthUpToFixedFrame works with a result parameter', function() {
@@ -56,10 +60,10 @@ defineSuite([
 
         var returnedResult = Transforms.eastNorthUpToFixedFrame(origin, Ellipsoid.UNIT_SPHERE, result);
         expect(result).toBe(returnedResult);
-        expect(returnedResult.getColumn(0)).toEqual(Cartesian4.UNIT_Y); // east
-        expect(returnedResult.getColumn(1)).toEqual(Cartesian4.UNIT_Z); // north
-        expect(returnedResult.getColumn(2)).toEqual(Cartesian4.UNIT_X); // up
-        expect(returnedResult.getColumn(3)).toEqual(expectedTranslation); // translation
+        expect(Matrix4.getColumn(returnedResult, 0)).toEqual(Cartesian4.UNIT_Y); // east
+        expect(Matrix4.getColumn(returnedResult, 1)).toEqual(Cartesian4.UNIT_Z); // north
+        expect(Matrix4.getColumn(returnedResult, 2)).toEqual(Cartesian4.UNIT_X); // up
+        expect(Matrix4.getColumn(returnedResult, 3)).toEqual(expectedTranslation); // translation
     });
 
     it('eastNorthUpToFixedFrame works at the north pole', function() {
@@ -69,10 +73,10 @@ defineSuite([
         var result = new Matrix4();
         var returnedResult = Transforms.eastNorthUpToFixedFrame(northPole, Ellipsoid.UNIT_SPHERE, result);
         expect(returnedResult).toBe(result);
-        expect(returnedResult.getColumn(0)).toEqual(Cartesian4.UNIT_Y); // east
-        expect(returnedResult.getColumn(1)).toEqual(Cartesian4.UNIT_X.negate()); // north
-        expect(returnedResult.getColumn(2)).toEqual(Cartesian4.UNIT_Z); // up
-        expect(returnedResult.getColumn(3)).toEqual(expectedTranslation); // translation
+        expect(Matrix4.getColumn(returnedResult, 0)).toEqual(Cartesian4.UNIT_Y); // east
+        expect(Matrix4.getColumn(returnedResult, 1)).toEqual(negativeX); // north
+        expect(Matrix4.getColumn(returnedResult, 2)).toEqual(Cartesian4.UNIT_Z); // up
+        expect(Matrix4.getColumn(returnedResult, 3)).toEqual(expectedTranslation); // translation
     });
 
     it('eastNorthUpToFixedFrame works at the south pole', function() {
@@ -80,10 +84,10 @@ defineSuite([
         var expectedTranslation = new Cartesian4(southPole.x, southPole.y, southPole.z, 1.0);
 
         var returnedResult = Transforms.eastNorthUpToFixedFrame(southPole, Ellipsoid.UNIT_SPHERE);
-        expect(returnedResult.getColumn(0)).toEqual(Cartesian4.UNIT_Y); // east
-        expect(returnedResult.getColumn(1)).toEqual(Cartesian4.UNIT_X); // north
-        expect(returnedResult.getColumn(2)).toEqual(Cartesian4.UNIT_Z.negate()); // up
-        expect(returnedResult.getColumn(3)).toEqual(expectedTranslation); // translation
+        expect(Matrix4.getColumn(returnedResult, 0)).toEqual(Cartesian4.UNIT_Y); // east
+        expect(Matrix4.getColumn(returnedResult, 1)).toEqual(Cartesian4.UNIT_X); // north
+        expect(Matrix4.getColumn(returnedResult, 2)).toEqual(negativeZ); // up
+        expect(Matrix4.getColumn(returnedResult, 3)).toEqual(expectedTranslation); // translation
     });
 
     it('northEastDownToFixedFrame works without a result parameter', function() {
@@ -91,10 +95,10 @@ defineSuite([
         var expectedTranslation = new Cartesian4(origin.x, origin.y, origin.z, 1.0);
 
         var returnedResult = Transforms.northEastDownToFixedFrame(origin, Ellipsoid.UNIT_SPHERE);
-        expect(returnedResult.getColumn(0)).toEqual(Cartesian4.UNIT_Z); // north
-        expect(returnedResult.getColumn(1)).toEqual(Cartesian4.UNIT_Y); // east
-        expect(returnedResult.getColumn(2)).toEqual(Cartesian4.UNIT_X.negate()); // down
-        expect(returnedResult.getColumn(3)).toEqual(expectedTranslation); // translation
+        expect(Matrix4.getColumn(returnedResult, 0)).toEqual(Cartesian4.UNIT_Z); // north
+        expect(Matrix4.getColumn(returnedResult, 1)).toEqual(Cartesian4.UNIT_Y); // east
+        expect(Matrix4.getColumn(returnedResult, 2)).toEqual(negativeX); // down
+        expect(Matrix4.getColumn(returnedResult, 3)).toEqual(expectedTranslation); // translation
     });
 
     it('northEastDownToFixedFrame works with a result parameter', function() {
@@ -104,10 +108,10 @@ defineSuite([
 
         var returnedResult = Transforms.northEastDownToFixedFrame(origin, Ellipsoid.UNIT_SPHERE, result);
         expect(result).toBe(returnedResult);
-        expect(returnedResult.getColumn(0)).toEqual(Cartesian4.UNIT_Z); // north
-        expect(returnedResult.getColumn(1)).toEqual(Cartesian4.UNIT_Y); // east
-        expect(returnedResult.getColumn(2)).toEqual(Cartesian4.UNIT_X.negate()); // down
-        expect(returnedResult.getColumn(3)).toEqual(expectedTranslation); // translation
+        expect(Matrix4.getColumn(returnedResult, 0)).toEqual(Cartesian4.UNIT_Z); // north
+        expect(Matrix4.getColumn(returnedResult, 1)).toEqual(Cartesian4.UNIT_Y); // east
+        expect(Matrix4.getColumn(returnedResult, 2)).toEqual(negativeX); // down
+        expect(Matrix4.getColumn(returnedResult, 3)).toEqual(expectedTranslation); // translation
     });
 
     it('northEastDownToFixedFrame works at the north pole', function() {
@@ -117,10 +121,10 @@ defineSuite([
         var result = new Matrix4();
         var returnedResult = Transforms.northEastDownToFixedFrame(northPole, Ellipsoid.UNIT_SPHERE, result);
         expect(returnedResult).toBe(result);
-        expect(returnedResult.getColumn(0)).toEqual(Cartesian4.UNIT_X.negate()); // north
-        expect(returnedResult.getColumn(1)).toEqual(Cartesian4.UNIT_Y); // east
-        expect(returnedResult.getColumn(2)).toEqual(Cartesian4.UNIT_Z.negate()); // down
-        expect(returnedResult.getColumn(3)).toEqual(expectedTranslation); // translation
+        expect(Matrix4.getColumn(returnedResult, 0)).toEqual(negativeX); // north
+        expect(Matrix4.getColumn(returnedResult, 1)).toEqual(Cartesian4.UNIT_Y); // east
+        expect(Matrix4.getColumn(returnedResult, 2)).toEqual(negativeZ); // down
+        expect(Matrix4.getColumn(returnedResult, 3)).toEqual(expectedTranslation); // translation
     });
 
     it('northEastDownToFixedFrame works at the south pole', function() {
@@ -128,16 +132,16 @@ defineSuite([
         var expectedTranslation = new Cartesian4(southPole.x, southPole.y, southPole.z, 1.0);
 
         var returnedResult = Transforms.northEastDownToFixedFrame(southPole, Ellipsoid.UNIT_SPHERE);
-        expect(returnedResult.getColumn(0)).toEqual(Cartesian4.UNIT_X); // north
-        expect(returnedResult.getColumn(1)).toEqual(Cartesian4.UNIT_Y); // east
-        expect(returnedResult.getColumn(2)).toEqual(Cartesian4.UNIT_Z); // down
-        expect(returnedResult.getColumn(3)).toEqual(expectedTranslation); // translation
+        expect(Matrix4.getColumn(returnedResult, 0)).toEqual(Cartesian4.UNIT_X); // north
+        expect(Matrix4.getColumn(returnedResult, 1)).toEqual(Cartesian4.UNIT_Y); // east
+        expect(Matrix4.getColumn(returnedResult, 2)).toEqual(Cartesian4.UNIT_Z); // down
+        expect(Matrix4.getColumn(returnedResult, 3)).toEqual(expectedTranslation); // translation
     });
 
     it('computeTemeToPseudoFixedMatrix works before noon', function() {
-        var time = new JulianDate();
-        var secondsDiff = TimeConstants.SECONDS_PER_DAY - time.getSecondsOfDay();
-        time = time.addSeconds(secondsDiff);
+        var time = JulianDate.now();
+        var secondsDiff = TimeConstants.SECONDS_PER_DAY - time.secondsOfDay;
+        time = JulianDate.addSeconds(time, secondsDiff, new JulianDate());
 
         var t = Transforms.computeTemeToPseudoFixedMatrix(time);
 
@@ -147,19 +151,19 @@ defineSuite([
 
         // rotation matrix inverses are equal to its transpose
         var t4 = Matrix4.fromRotationTranslation(t, Cartesian3.ZERO);
-        expect(t4.inverse()).toEqualEpsilon(t4.inverseTransformation(), CesiumMath.EPSILON14);
+        expect(Matrix4.inverse(t4)).toEqualEpsilon(Matrix4.inverseTransformation(t4), CesiumMath.EPSILON14);
 
-        time = time.addHours(23.93447); // add one sidereal day
+        time = JulianDate.addHours(time, 23.93447, new JulianDate()); // add one sidereal day
         var u = Transforms.computeTemeToPseudoFixedMatrix(time);
-        var tAngle = Quaternion.fromRotationMatrix(t).getAngle();
-        var uAngle = Quaternion.fromRotationMatrix(u).getAngle();
+        var tAngle = Quaternion.getAngle(Quaternion.fromRotationMatrix(t));
+        var uAngle = Quaternion.getAngle(Quaternion.fromRotationMatrix(u));
         expect(tAngle).toEqualEpsilon(uAngle, CesiumMath.EPSILON6);
     });
 
     it('computeTemeToPseudoFixedMatrix works after noon', function() {
-        var time = new JulianDate();
-        var secondsDiff = TimeConstants.SECONDS_PER_DAY - time.getSecondsOfDay();
-        time = time.addSeconds(secondsDiff + TimeConstants.SECONDS_PER_DAY * 0.5);
+        var time = JulianDate.now();
+        var secondsDiff = TimeConstants.SECONDS_PER_DAY - time.secondsOfDay;
+        time = JulianDate.addSeconds(time, secondsDiff + TimeConstants.SECONDS_PER_DAY * 0.5, new JulianDate());
 
         var t = Transforms.computeTemeToPseudoFixedMatrix(time);
 
@@ -169,19 +173,19 @@ defineSuite([
 
         // rotation matrix inverses are equal to its transpose
         var t4 = Matrix4.fromRotationTranslation(t, Cartesian3.ZERO);
-        expect(t4.inverse()).toEqualEpsilon(t4.inverseTransformation(), CesiumMath.EPSILON14);
+        expect(Matrix4.inverse(t4)).toEqualEpsilon(Matrix4.inverseTransformation(t4), CesiumMath.EPSILON14);
 
-        time = time.addHours(23.93447); // add one sidereal day
+        time = JulianDate.addHours(time, 23.93447, new JulianDate()); // add one sidereal day
         var u = Transforms.computeTemeToPseudoFixedMatrix(time);
-        var tAngle = Quaternion.fromRotationMatrix(t).getAngle();
-        var uAngle = Quaternion.fromRotationMatrix(u).getAngle();
+        var tAngle = Quaternion.getAngle(Quaternion.fromRotationMatrix(t));
+        var uAngle = Quaternion.getAngle(Quaternion.fromRotationMatrix(u));
         expect(tAngle).toEqualEpsilon(uAngle, CesiumMath.EPSILON6);
     });
 
     it('computeTemeToPseudoFixedMatrix works with a result parameter', function() {
-        var time = new JulianDate();
-        var secondsDiff = TimeConstants.SECONDS_PER_DAY - time.getSecondsOfDay();
-        time = time.addSeconds(secondsDiff);
+        var time = JulianDate.now();
+        var secondsDiff = TimeConstants.SECONDS_PER_DAY - time.secondsOfDay;
+        time = JulianDate.addSeconds(time, secondsDiff, new JulianDate());
 
         var resultT = new Matrix3();
         var t = Transforms.computeTemeToPseudoFixedMatrix(time, resultT);
@@ -193,14 +197,14 @@ defineSuite([
 
         // rotation matrix inverses are equal to its transpose
         var t4 = Matrix4.fromRotationTranslation(t, Cartesian3.ZERO);
-        expect(t4.inverse()).toEqualEpsilon(t4.inverseTransformation(), CesiumMath.EPSILON14);
+        expect(Matrix4.inverse(t4)).toEqualEpsilon(Matrix4.inverseTransformation(t4), CesiumMath.EPSILON14);
 
-        time = time.addHours(23.93447); // add one sidereal day
+        time = JulianDate.addHours(time, 23.93447, new JulianDate()); // add one sidereal day
         var resultU = new Matrix3();
         var u = Transforms.computeTemeToPseudoFixedMatrix(time, resultU);
         expect(u).toBe(resultU);
-        var tAngle = Quaternion.fromRotationMatrix(t).getAngle();
-        var uAngle = Quaternion.fromRotationMatrix(u).getAngle();
+        var tAngle = Quaternion.getAngle(Quaternion.fromRotationMatrix(t));
+        var uAngle = Quaternion.getAngle(Quaternion.fromRotationMatrix(u));
         expect(tAngle).toEqualEpsilon(uAngle, CesiumMath.EPSILON6);
     });
 
@@ -230,11 +234,11 @@ defineSuite([
         it('throws if the date parameter is not specified', function() {
             expect(function() {
                 Transforms.computeIcrfToFixedMatrix(undefined);
-            }).toThrow();
+            }).toThrowDeveloperError();
 
             expect(function() {
                 Transforms.computeFixedToIcrfMatrix(undefined);
-            }).toThrow();
+            }).toThrowDeveloperError();
         });
 
         it('works with data from STK Components', function() {
@@ -248,7 +252,7 @@ defineSuite([
             });
 
             waitsFor(function() {
-                return typeof componentsData !== 'undefined';
+                return defined(componentsData);
             });
 
             runs(function() {
@@ -275,16 +279,16 @@ defineSuite([
 
                     // rotation matrix inverses are equal to its transpose
                     var t4 = Matrix4.fromRotationTranslation(t, Cartesian3.ZERO);
-                    expect(t4.inverse()).toEqualEpsilon(t4.inverseTransformation(), CesiumMath.EPSILON14);
+                    expect(Matrix4.inverse(t4)).toEqualEpsilon(Matrix4.inverseTransformation(t4), CesiumMath.EPSILON14);
 
-                    var expectedMtx = Matrix3.fromQuaternion(componentsData[i].icrfToFixedQuaternion);
-                    var testInverse = t.transpose().multiply(expectedMtx);
+                    var expectedMtx = Matrix3.fromQuaternion(Quaternion.conjugate(componentsData[i].icrfToFixedQuaternion));
+                    var testInverse = Matrix3.multiply(Matrix3.transpose(t), expectedMtx);
                     var testDiff = new Matrix3();
                     for ( var k = 0; k < 9; k++) {
                         testDiff[k] = t[k] - expectedMtx[k];
                     }
-                    expect(testInverse).toEqualEpsilon(Matrix3.IDENTITY, CesiumMath.EPSILON15);
-                    expect(testDiff).toEqualEpsilon(new Matrix3(), CesiumMath.EPSILON15);
+                    expect(testInverse).toEqualEpsilon(Matrix3.IDENTITY, CesiumMath.EPSILON14);
+                    expect(testDiff).toEqualEpsilon(new Matrix3(), CesiumMath.EPSILON14);
                 }
             });
         });
@@ -308,26 +312,26 @@ defineSuite([
 
                 // rotation matrix inverses are equal to its transpose
                 var t4 = Matrix4.fromRotationTranslation(t, Cartesian3.ZERO);
-                expect(t4.inverse()).toEqualEpsilon(t4.inverseTransformation(), CesiumMath.EPSILON14);
+                expect(Matrix4.inverse(t4)).toEqualEpsilon(Matrix4.inverseTransformation(t4), CesiumMath.EPSILON14);
 
-                time = time.addHours(23.93447); // add one sidereal day
+                time = JulianDate.addHours(time, 23.93447, new JulianDate()); // add one sidereal day
                 var resultU = new Matrix3();
                 var u = Transforms.computeIcrfToFixedMatrix(time, resultU);
                 expect(u).toBe(resultU);
-                var tAngle = Quaternion.fromRotationMatrix(t).getAngle();
-                var uAngle = Quaternion.fromRotationMatrix(u).getAngle();
+                var tAngle = Quaternion.getAngle(Quaternion.fromRotationMatrix(t));
+                var uAngle = Quaternion.getAngle(Quaternion.fromRotationMatrix(u));
                 expect(tAngle).toEqualEpsilon(uAngle, CesiumMath.EPSILON6);
 
                 // The rotation matrix from STK Components corresponding to the time and data inputs above
                 var expectedMtx = new Matrix3(0.18264414843630006, -0.98317906144315947, -0.00021950336420248503, 0.98317840915224974, 0.18264428011734501, -0.0011325710874539787, 0.0011536112127187594, -0.0000089534866085598909, 0.99999933455028112);
 
-                var testInverse = t.transpose().multiply(expectedMtx);
+                var testInverse = Matrix3.multiply(Matrix3.transpose(t), expectedMtx);
                 var testDiff = new Matrix3();
                 for ( var i = 0; i < 9; i++) {
                     testDiff[i] = t[i] - expectedMtx[i];
                 }
-                expect(testInverse).toEqualEpsilon(Matrix3.IDENTITY, CesiumMath.EPSILON15);
-                expect(testDiff).toEqualEpsilon(new Matrix3(), CesiumMath.EPSILON15);
+                expect(testInverse).toEqualEpsilon(Matrix3.IDENTITY, CesiumMath.EPSILON14);
+                expect(testDiff).toEqualEpsilon(new Matrix3(), CesiumMath.EPSILON14);
             });
         });
 
@@ -346,13 +350,13 @@ defineSuite([
                 // The rotation matrix from STK Components corresponding to the time and data inputs above
                 var expectedMtx = new Matrix3(-0.19073578935932833, 0.98164138366748721, 0.00022919174269963536, -0.98164073712836186, -0.19073592679333939, 0.0011266944449015753, 0.0011497249933208494, -0.000010082996932331842, 0.99999933901516791);
 
-                var testInverse = t.transpose().multiply(expectedMtx);
+                var testInverse = Matrix3.multiply(Matrix3.transpose(t), expectedMtx);
                 var testDiff = new Matrix3();
                 for ( var i = 0; i < 9; i++) {
                     testDiff[i] = t[i] - expectedMtx[i];
                 }
-                expect(testInverse).toEqualEpsilon(Matrix3.IDENTITY, CesiumMath.EPSILON15);
-                expect(testDiff).toEqualEpsilon(new Matrix3(), CesiumMath.EPSILON15);
+                expect(testInverse).toEqualEpsilon(Matrix3.IDENTITY, CesiumMath.EPSILON14);
+                expect(testDiff).toEqualEpsilon(new Matrix3(), CesiumMath.EPSILON14);
             });
         });
 
@@ -370,13 +374,13 @@ defineSuite([
                 //The rotation matrix from STK Components corresponding to the time and data inputs above
                 var expectedMtx = new Matrix3(-0.17489910479510423, 0.984586338811966, 0.00021110831245616662, -0.98458569065286827, -0.17489923190143036, 0.0011297972845023996, 0.0011493056536445096, -0.00001025368996280683, 0.99999933949547);
 
-                var testInverse = t.transpose().multiply(expectedMtx);
+                var testInverse = Matrix3.multiply(Matrix3.transpose(t), expectedMtx);
                 var testDiff = new Matrix3();
                 for ( var i = 0; i < 9; i++) {
                     testDiff[i] = t[i] - expectedMtx[i];
                 }
-                expect(testInverse).toEqualEpsilon(Matrix3.IDENTITY, CesiumMath.EPSILON15);
-                expect(testDiff).toEqualEpsilon(new Matrix3(), CesiumMath.EPSILON15);
+                expect(testInverse).toEqualEpsilon(Matrix3.IDENTITY, CesiumMath.EPSILON14);
+                expect(testDiff).toEqualEpsilon(new Matrix3(), CesiumMath.EPSILON14);
             });
         });
 
@@ -397,8 +401,8 @@ defineSuite([
                 var resultT = new Matrix3();
                 var t = Transforms.computeIcrfToFixedMatrix(time, resultT);
 
-                var result = t.multiplyByVector(inertialPos);
-                var error = result.subtract(expectedFixedPos);
+                var result = Matrix3.multiplyByVector(t, inertialPos);
+                var error = Cartesian3.subtract(result, expectedFixedPos, new Cartesian3());
 
                 // Given the magnitude of the positions involved (1e8)
                 // this tolerance represents machine precision
@@ -412,7 +416,7 @@ defineSuite([
             // Purposefully do not load EOP!  EOP doesn't make a lot of sense before 1972.
             // Even though we are trying to load the data for 1970,
             // we don't have the data in Cesium to load.
-            preloadTransformationData(time, time.addDays(1));
+            preloadTransformationData(time, JulianDate.addDays(time, 1, new JulianDate()));
             var resultT = new Matrix3();
             var t = Transforms.computeIcrfToFixedMatrix(time, resultT);
             // Check that we get undefined, since we don't have ICRF data
@@ -425,7 +429,7 @@ defineSuite([
             // Purposefully do not load EOP!  EOP doesn't exist yet that far into the future
             // Even though we are trying to load the data for 2030,
             // we don't have the data in Cesium to load.
-            preloadTransformationData(time, time.addDays(1));
+            preloadTransformationData(time, JulianDate.addDays(time, 1, new JulianDate()));
             var resultT = new Matrix3();
             var t = Transforms.computeIcrfToFixedMatrix(time, resultT);
             // Check that we get undefined, since we don't have ICRF data
@@ -447,8 +451,8 @@ defineSuite([
                 var resultT = new Matrix3();
                 var t = Transforms.computeIcrfToFixedMatrix(time, resultT);
 
-                var result = t.multiplyByVector(inertialPos);
-                var error = result.subtract(expectedFixedPos);
+                var result = Matrix3.multiplyByVector(t, inertialPos);
+                var error = Cartesian3.subtract(result, expectedFixedPos, new Cartesian3());
 
                 // Given the magnitude of the positions involved (1e8)
                 // this tolerance represents machine precision
@@ -467,7 +471,7 @@ defineSuite([
             runs(function() {
                 expect(function() {
                     return Transforms.computeIcrfToFixedMatrix(time);
-                }).toThrow();
+                }).toThrowRuntimeError();
             });
         });
 
@@ -482,7 +486,7 @@ defineSuite([
             runs(function() {
                 expect(function() {
                     return Transforms.computeIcrfToFixedMatrix(time);
-                }).toThrow();
+                }).toThrowRuntimeError();
             });
         });
 
@@ -518,11 +522,11 @@ defineSuite([
 
     it('pointToWindowCoordinates works at the center', function() {
         var view = Matrix4.fromCamera({
-            eye : Cartesian3.UNIT_X.multiplyByScalar(2.0),
+            eye : Cartesian3.multiplyByScalar(Cartesian3.UNIT_X, 2.0, new Cartesian3()),
             target : Cartesian3.ZERO,
             up : Cartesian3.UNIT_Z
         });
-        var mvpMatrix = perspective.multiply(view);
+        var mvpMatrix = Matrix4.multiply(perspective, view);
 
         var expected = new Cartesian2(width * 0.5, height * 0.5);
         var returnedResult = Transforms.pointToWindowCoordinates(mvpMatrix, vpTransform, Cartesian3.ZERO);
@@ -531,11 +535,11 @@ defineSuite([
 
     it('pointToWindowCoordinates works with a result parameter', function() {
         var view = Matrix4.fromCamera({
-            eye : Cartesian3.UNIT_X.multiplyByScalar(2.0),
+            eye : Cartesian3.multiplyByScalar(Cartesian3.UNIT_X, 2.0, new Cartesian3()),
             target : Cartesian3.ZERO,
             up : Cartesian3.UNIT_Z
         });
-        var mvpMatrix = perspective.multiply(view);
+        var mvpMatrix = Matrix4.multiply(perspective, view);
 
         var expected = new Cartesian2(width * 0.5, height * 0.5);
         var result = new Cartesian2();
@@ -569,36 +573,36 @@ defineSuite([
     it('eastNorthUpToFixedFrame throws without an origin', function() {
         expect(function() {
             Transforms.eastNorthUpToFixedFrame(undefined, Ellipsoid.WGS84);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('northEastDownToFixedFrame throws without an origin', function() {
         expect(function() {
             Transforms.northEastDownToFixedFrame(undefined, Ellipsoid.WGS84);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('computeTemeToPseudoFixedMatrix throws without a date', function() {
         expect(function() {
             Transforms.computeTemeToPseudoFixedMatrix(undefined);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('pointToWindowCoordinates throws without modelViewProjectionMatrix', function() {
         expect(function() {
             Transforms.pointToWindowCoordinates(undefined, Matrix4.IDENTITY, Cartesian3.ZERO);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('pointToWindowCoordinates throws without viewportTransformation', function() {
         expect(function() {
             Transforms.pointToWindowCoordinates(Matrix4.IDENTITY, undefined, Cartesian3.ZERO);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 
     it('pointToWindowCoordinates throws without a point', function() {
         expect(function() {
             Transforms.pointToWindowCoordinates(Matrix4.IDENTITY, Matrix4.IDENTITY, undefined);
-        }).toThrow();
+        }).toThrowDeveloperError();
     });
 });

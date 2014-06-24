@@ -1,14 +1,16 @@
 /*global defineSuite*/
 defineSuite([
-         'Scene/TileReplacementQueue',
-         'Scene/ImageryState',
-         'Scene/TerrainState',
-         'Scene/TileState'
-     ], function(
-         TileReplacementQueue,
-         ImageryState,
-         TerrainState,
-         TileState) {
+        'Scene/TileReplacementQueue',
+        'Core/defined',
+        'Scene/ImageryState',
+        'Scene/TerrainState',
+        'Scene/TileState'
+    ], function(
+        TileReplacementQueue,
+        defined,
+        ImageryState,
+        TerrainState,
+        TileState) {
     "use strict";
     /*global document,describe,it,expect,beforeEach*/
 
@@ -16,12 +18,12 @@ defineSuite([
         this._num = num;
         this.state = TileState.LOADING;
         this.imagery = [];
-        if (typeof loadedState !== 'undefined') {
+        if (defined(loadedState)) {
             this.loadedTerrain = {
                 state : loadedState
             };
         }
-        if (typeof upsampledState !== 'undefined') {
+        if (defined(upsampledState)) {
             this.upsampledTerrain = {
                 state : upsampledState
             };
@@ -123,7 +125,7 @@ defineSuite([
             queue.markTileRendered(three);
 
             two.imagery.push({
-                imagery : {
+                loadingImagery : {
                     state : ImageryState.TRANSITIONING
                 }
             });
