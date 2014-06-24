@@ -16,7 +16,6 @@ attribute vec4 pickColor;
 attribute vec4 color;
 #endif
 
-uniform float u_morphTime;
 uniform bool u_sizeReal;
 varying vec2 v_textureCoordinates;
 
@@ -106,7 +105,6 @@ void main()
 
     vec4 positionWC = czm_eyeToWindowCoordinates(positionEC);
     
-    vec2 halfSize = u_atlasSize * imageSize * 0.5 * scale * czm_highResolutionSnapScale;
     if (u_sizeReal) {
       scale /= length(positionEC.zw);
     }
