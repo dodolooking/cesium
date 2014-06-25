@@ -1492,6 +1492,14 @@ define([
             return;
         }
 
+        // klokantech: invert the tilting direction:
+        //             do NOT modify the original object (used for inertia)
+        movement = {
+          startPosition: {x: movement.startPosition.x, y: movement.endPosition.y},
+          endPosition: {x: movement.endPosition.x, y: movement.startPosition.y}
+        };
+        // ----
+
         var canvas = scene.canvas;
 
         var windowPosition = tilt3DWindowPos;
