@@ -884,6 +884,14 @@ define([
             return;
         }
 
+        // klokantech: invert the tilting direction:
+        //             do NOT modify the original object (used for inertia)
+        movement = {
+          startPosition: {x: movement.startPosition.x, y: movement.endPosition.y},
+          endPosition: {x: movement.endPosition.x, y: movement.startPosition.y}
+        };
+        // ----
+
         var windowPosition = tilt3DWindowPos;
         windowPosition.x = controller._canvas.clientWidth / 2;
         windowPosition.y = controller._canvas.clientHeight / 2;
