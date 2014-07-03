@@ -898,7 +898,7 @@ define([
             this._eyeHeight2D.y = 0.0;
         }
 
-        setSunAndMoonDirections(this, frameState);
+        //setSunAndMoonDirections(this, frameState);
 
         this._entireFrustum.x = camera.frustum.near;
         this._entireFrustum.y = camera.frustum.far;
