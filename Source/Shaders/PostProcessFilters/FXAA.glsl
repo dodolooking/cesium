@@ -83,12 +83,12 @@ FXAA_SUBPIX_CAP - Insures fine detail is not completely removed.
 // This approximates luma using one FMA instruction,
 // skipping normalization and tossing out blue.
 // FxaaLuma() will range 0.0 to 2.963210702.
-float FxaaLuma(vec3 rgb) {
+float FxaaLuma(vec4 rgb) {
     return rgb.y * (0.587/0.299) + rgb.x;
 }
 
-vec3 FxaaLerp3(vec3 a, vec3 b, float amountOfA) {
-    return (vec3(-amountOfA) * b) + ((a * vec3(amountOfA)) + b);
+vec4 FxaaLerp4(vec4 a, vec4 b, float amountOfA) {
+    return (vec4(-amountOfA) * b) + ((a * vec4(amountOfA)) + b);
 }
 
 vec4 FxaaTexOff(sampler2D tex, vec2 pos, ivec2 off, vec2 rcpFrame) {
@@ -100,13 +100,13 @@ vec4 FxaaTexOff(sampler2D tex, vec2 pos, ivec2 off, vec2 rcpFrame) {
 // pos is the output of FxaaVertexShader interpolated across screen.
 // xy -> actual texture position {0.0 to 1.0}
 // rcpFrame should be a uniform equal to  {1.0/frameWidth, 1.0/frameHeight}
-vec3 FxaaPixelShader(vec2 pos, sampler2D tex, vec2 rcpFrame)
+vec4 FxaaPixelShader(vec2 pos, sampler2D tex, vec2 rcpFrame)
 {
-    vec3 rgbN = FxaaTexOff(tex, pos.xy, ivec2( 0,-1), rcpFrame).xyz;
-    vec3 rgbW = FxaaTexOff(tex, pos.xy, ivec2(-1, 0), rcpFrame).xyz;
-    vec3 rgbM = FxaaTexOff(tex, pos.xy, ivec2( 0, 0), rcpFrame).xyz;
-    vec3 rgbE = FxaaTexOff(tex, pos.xy, ivec2( 1, 0), rcpFrame).xyz;
-    vec3 rgbS = FxaaTexOff(tex, pos.xy, ivec2( 0, 1), rcpFrame).xyz;
+    vec4 rgbN = FxaaTexOff(tex, pos.xy, ivec2( 0,-1), rcpFrame);
+    vec4 rgbW = FxaaTexOff(tex, pos.xy, ivec2(-1, 0), rcpFrame);
+    vec4 rgbM = FxaaTexOff(tex, pos.xy, ivec2( 0, 0), rcpFrame);
+    vec4 rgbE = FxaaTexOff(tex, pos.xy, ivec2( 1, 0), rcpFrame);
+    vec4 rgbS = FxaaTexOff(tex, pos.xy, ivec2( 0, 1), rcpFrame);
     
     float lumaN = FxaaLuma(rgbN);
     float lumaW = FxaaLuma(rgbW);
@@ -122,19 +122,19 @@ vec3 FxaaPixelShader(vec2 pos, sampler2D tex, vec2 rcpFrame)
         return rgbM;
     }
     
-    vec3 rgbL = rgbN + rgbW + rgbM + rgbE + rgbS;
+    vec4 rgbL = rgbN + rgbW + rgbM + rgbE + rgbS;
     
     float lumaL = (lumaN + lumaW + lumaE + lumaS) * 0.25;
     float rangeL = abs(lumaL - lumaM);
     float blendL = max(0.0, (rangeL / range) - FXAA_SUBPIX_TRIM) * FXAA_SUBPIX_TRIM_SCALE; 
     blendL = min(FXAA_SUBPIX_CAP, blendL);
     
-    vec3 rgbNW = FxaaTexOff(tex, pos.xy, ivec2(-1,-1), rcpFrame).xyz;
-    vec3 rgbNE = FxaaTexOff(tex, pos.xy, ivec2( 1,-1), rcpFrame).xyz;
-    vec3 rgbSW = FxaaTexOff(tex, pos.xy, ivec2(-1, 1), rcpFrame).xyz;
-    vec3 rgbSE = FxaaTexOff(tex, pos.xy, ivec2( 1, 1), rcpFrame).xyz;
+    vec4 rgbNW = FxaaTexOff(tex, pos.xy, ivec2(-1,-1), rcpFrame);
+    vec4 rgbNE = FxaaTexOff(tex, pos.xy, ivec2( 1,-1), rcpFrame);
+    vec4 rgbSW = FxaaTexOff(tex, pos.xy, ivec2(-1, 1), rcpFrame);
+    vec4 rgbSE = FxaaTexOff(tex, pos.xy, ivec2( 1, 1), rcpFrame);
     rgbL += (rgbNW + rgbNE + rgbSW + rgbSE);
-    rgbL *= vec3(1.0/9.0);
+    rgbL *= vec4(1.0/9.0);
     
     float lumaNW = FxaaLuma(rgbNW);
     float lumaNE = FxaaLuma(rgbNE);
@@ -190,11 +190,11 @@ vec3 FxaaPixelShader(vec2 pos, sampler2D tex, vec2 rcpFrame)
     for(int i = 0; i < FXAA_SEARCH_STEPS; i++) {
         if(!doneN)
         {
-            lumaEndN = FxaaLuma(texture2D(tex, posN.xy).xyz);
+            lumaEndN = FxaaLuma(texture2D(tex, posN.xy));
         }
         if(!doneP)
         {
-            lumaEndP = FxaaLuma(texture2D(tex, posP.xy).xyz);
+            lumaEndP = FxaaLuma(texture2D(tex, posP.xy));
         }
         
         doneN = doneN || (abs(lumaEndN - lumaN) >= gradientN);
@@ -228,10 +228,10 @@ vec3 FxaaPixelShader(vec2 pos, sampler2D tex, vec2 rcpFrame)
     float spanLength = (dstP + dstN);
     dstN = directionN ? dstN : dstP;
     float subPixelOffset = (0.5 + (dstN * (-1.0/spanLength))) * lengthSign;
-    vec3 rgbF = texture2D(tex, vec2(
+    vec4 rgbF = texture2D(tex, vec2(
         pos.x + (horzSpan ? 0.0 : subPixelOffset),
-        pos.y + (horzSpan ? subPixelOffset : 0.0))).xyz;
-    return FxaaLerp3(rgbL, rgbF, blendL); 
+        pos.y + (horzSpan ? subPixelOffset : 0.0)));
+    return FxaaLerp4(rgbL, rgbF, blendL); 
 }
 
 uniform sampler2D u_texture;
@@ -241,5 +241,5 @@ varying vec2 v_textureCoordinates;
 
 void main()
 {
-    gl_FragColor = vec4(FxaaPixelShader(v_textureCoordinates, u_texture, u_step), 1.0);
+    gl_FragColor = FxaaPixelShader(v_textureCoordinates, u_texture, u_step);
 }
